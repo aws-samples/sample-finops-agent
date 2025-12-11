@@ -21,7 +21,7 @@ terraform {
 # Package the Lambda function code
 data "archive_file" "lambda_zip" {
   type        = "zip"
-  source_file = "${path.module}/../../lambda/proxy/lambda_function.py"
+  source_file = "${path.module}/../../../src/lambda/proxy/lambda_function.py"
   output_path = "${path.module}/lambda_function.zip"
 }
 

@@ -1,0 +1,63 @@
+# <type>(<scope>): <subject>
+#
+# <body>
+#
+# <footer>
+
+# ─────────────────────────────────────────────────────────────────────────────
+# COMMIT MESSAGE FORMAT
+# ─────────────────────────────────────────────────────────────────────────────
+#
+# Type (required):
+#   feat     - New feature
+#   fix      - Bug fix
+#   docs     - Documentation only
+#   style    - Formatting, missing semicolons, etc (no code change)
+#   refactor - Code change that neither fixes a bug nor adds a feature
+#   perf     - Performance improvement
+#   test     - Adding or updating tests
+#   chore    - Build process, dependencies, tooling
+#   ci       - CI/CD configuration
+#   revert   - Reverting a previous commit
+#
+# Scope (optional):
+#   Component or module affected (e.g., runtime, gateway, lambda, iam)
+#
+# Subject (required):
+#   - Use imperative mood: "add" not "added" or "adds"
+#   - Don't capitalize first letter
+#   - No period at the end
+#   - Max 50 characters
+#
+# Body (optional):
+#   - Wrap at 72 characters
+#   - Explain WHAT and WHY, not HOW
+#   - Separate from subject with blank line
+#
+# Footer (optional):
+#   - Reference issues: "Fixes #123" or "Closes #456"
+#   - Breaking changes: "BREAKING CHANGE: <description>"
+#
+# ─────────────────────────────────────────────────────────────────────────────
+# EXAMPLES
+# ─────────────────────────────────────────────────────────────────────────────
+#
+# feat(gateway): add JWT authentication support
+#
+# fix(lambda): handle timeout errors gracefully
+#
+# docs: update README with deployment instructions
+#
+# refactor(iam): simplify trust policy for runtime role
+#
+# The trust policy was overly complex with redundant conditions.
+# Simplified to use only the required source account check.
+#
+# chore(deps): update AWS provider to 5.70.0
+#
+# Required for AgentCore resource support.
+#
+# ─────────────────────────────────────────────────────────────────────────────
+# To use this template:
+#   git config commit.template .gitmessage
+# ─────────────────────────────────────────────────────────────────────────────

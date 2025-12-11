@@ -1,22 +1,103 @@
+# -----------------------------------------------------------------------------
 # Terraform
-.terraform/
+# -----------------------------------------------------------------------------
+
+# Local .terraform directories
+**/.terraform/*
+
+# .tfstate files
 *.tfstate
 *.tfstate.*
+
+# Crash log files
 crash.log
+crash.*.log
+
+# Exclude all .tfvars files (user-specific configurations)
 *.tfvars
-!*.tfvars.example
+*.tfvars.json
+!**/terraform.tfvars.example
 
-# Environment
-.env
-!.env.example
+# Override files
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
 
-# IDE
-.idea/
-*.swp
+# CLI configuration file
+.terraformrc
+terraform.rc
+
+# Lock file (optional - some teams commit this)
+.terraform.lock.hcl
+
+# Terraform plan files
+*.tfplan
+
+# Lambda zip files created during build
+terraform/modules/lambda-proxy/*.zip
+
+# -----------------------------------------------------------------------------
+# Environment files
+# -----------------------------------------------------------------------------
+
+# Makefile environment file
+terraform/config/.env
+!terraform/config/.env.example
+
+# Python virtual environments
+.venv/
+venv/
+ENV/
+
+# -----------------------------------------------------------------------------
+# IDE and Editor
+# -----------------------------------------------------------------------------
+
+# VS Code
 .vscode/
 
-# OS
-.DS_Store
+# JetBrains
+.idea/
 
-# Build artifacts (keep lambda zips in modules)
-/lambda_function.zip
+# Vim
+*.swp
+*.swo
+*~
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# -----------------------------------------------------------------------------
+# Python
+# -----------------------------------------------------------------------------
+
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+dist/
+build/
+eggs/
+*.egg
+
+# -----------------------------------------------------------------------------
+# Logs
+# -----------------------------------------------------------------------------
+
+*.log
+logs/
+
+# -----------------------------------------------------------------------------
+# Secrets and credentials
+# -----------------------------------------------------------------------------
+
+# Never commit secrets
+*.pem
+*.key
+credentials.json
+secrets.json

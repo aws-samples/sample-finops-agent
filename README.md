@@ -59,7 +59,7 @@ cd terraform/
 make setup
 
 # 3. Edit configuration files
-#    - .env: Set your AWS_PROFILE and AWS_REGION
+#    - config/.env: Set your AWS_PROFILE and AWS_REGION
 #    - terraform.tfvars: Set your project settings and tags
 
 # 4. Initialize Terraform
@@ -77,7 +77,7 @@ make output
 
 ## Configuration
 
-### .env (AWS Credentials for Makefile)
+### config/.env (AWS Credentials for Makefile)
 
 ```bash
 AWS_PROFILE=default
@@ -253,40 +253,41 @@ make destroy-auto
 - **State file**: Keep `terraform.tfstate` secure - it contains resource IDs and configuration
 - **Tags**: Use tags for cost tracking and resource management
 
-## Module Structure
+## Project Structure
 
 ```
-terraform/
-├── main.tf                    # Module orchestration
-├── variables.tf               # Input variables
-├── outputs.tf                 # Output values
-├── versions.tf                # Provider requirements
-├── Makefile                   # Command wrapper
-├── terraform.tfvars.example   # Example configuration
-├── .env.example               # Example AWS credentials
+aiops_mcp_gateway_proxy/
+├── .gitignore                 # Git ignore patterns
+├── .gitmessage                # Commit message template
+├── README.md                  # This file
 │
-├── modules/
-│   ├── agentcore-runtime/     # MCP Server (AWS Marketplace container)
-│   │   ├── main.tf
-│   │   ├── variables.tf
-│   │   ├── outputs.tf
-│   │   └── iam.tf
-│   │
-│   ├── lambda-proxy/          # Lambda function
-│   │   ├── main.tf
-│   │   ├── variables.tf
-│   │   ├── outputs.tf
-│   │   └── iam.tf
-│   │
-│   └── agentcore-gateway/     # Gateway configuration
-│       ├── main.tf
-│       ├── variables.tf
-│       ├── outputs.tf
-│       └── iam.tf
+├── docs/
+│   └── architecture.drawio    # Architecture diagrams
 │
-└── lambda/
-    └── proxy/
-        └── lambda_function.py # Lambda source code
+├── scripts/
+│   └── invoke_lambda.py       # Lambda testing script
+│
+├── src/
+│   └── lambda/
+│       └── proxy/
+│           └── lambda_function.py  # Lambda source code
+│
+└── terraform/
+    ├── main.tf                # Module orchestration
+    ├── variables.tf           # Input variables
+    ├── outputs.tf             # Output values
+    ├── versions.tf            # Provider requirements
+    ├── Makefile               # Command wrapper
+    │
+    ├── config/                # Configuration examples
+    │   ├── terraform.tfvars.example
+    │   ├── .env.example
+    │   └── .tflint.hcl
+    │
+    └── modules/
+        ├── agentcore-runtime/ # MCP Server (AWS Marketplace)
+        ├── lambda-proxy/      # Lambda function
+        └── agentcore-gateway/ # Gateway configuration
 ```
 
 ## Related Resources

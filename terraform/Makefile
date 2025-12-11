@@ -4,8 +4,8 @@
 # Wrapper for terraform commands with AWS credential management
 # -----------------------------------------------------------------------------
 
-# Load from .env if exists (for Makefile AWS credentials only)
--include .env
+# Load from config/.env if exists (for Makefile AWS credentials only)
+-include config/.env
 export
 
 # Defaults (override via .env or environment)
@@ -30,20 +30,20 @@ help: ## Show this help
 
 setup: ## Initial setup - copy example configs
 	@if [ ! -f terraform.tfvars ]; then \
-		cp terraform.tfvars.example terraform.tfvars; \
+		cp config/terraform.tfvars.example terraform.tfvars; \
 		echo "Created terraform.tfvars - please edit with your values"; \
 	else \
 		echo "terraform.tfvars already exists"; \
 	fi
-	@if [ ! -f .env ]; then \
-		cp .env.example .env; \
-		echo "Created .env - please edit with your AWS profile/region"; \
+	@if [ ! -f config/.env ]; then \
+		cp config/.env.example config/.env; \
+		echo "Created config/.env - please edit with your AWS profile/region"; \
 	else \
-		echo ".env already exists"; \
+		echo "config/.env already exists"; \
 	fi
 	@echo ""
 	@echo "Next steps:"
-	@echo "  1. Edit .env with your AWS_PROFILE and AWS_REGION"
+	@echo "  1. Edit config/.env with your AWS_PROFILE and AWS_REGION"
 	@echo "  2. Edit terraform.tfvars with your project settings"
 	@echo "  3. Run 'make init' to initialize Terraform"
 
@@ -80,10 +80,10 @@ lint-init: ## Initialize tflint plugins (run once after install)
 
 lint: ## Run tflint (install: brew install tflint)
 	@command -v tflint >/dev/null 2>&1 || { echo "tflint not installed. Run: brew install tflint"; exit 1; }
-	tflint --config $(CURDIR)/.tflint.hcl
-	tflint --config $(CURDIR)/.tflint.hcl --chdir modules/agentcore-runtime
-	tflint --config $(CURDIR)/.tflint.hcl --chdir modules/agentcore-gateway
-	tflint --config $(CURDIR)/.tflint.hcl --chdir modules/lambda-proxy
+	tflint --config $(CURDIR)/config/.tflint.hcl
+	tflint --config $(CURDIR)/config/.tflint.hcl --chdir modules/agentcore-runtime
+	tflint --config $(CURDIR)/config/.tflint.hcl --chdir modules/agentcore-gateway
+	tflint --config $(CURDIR)/config/.tflint.hcl --chdir modules/lambda-proxy
 
 check: fmt validate lint ## Run all checks (fmt, validate, lint)
 	@echo "All checks passed!"

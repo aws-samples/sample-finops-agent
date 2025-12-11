@@ -1,0 +1,221 @@
+<mxfile host="app.diagrams.net" modified="2025-12-11T05:40:00.000Z" agent="Mozilla/5.0" version="22.1.0" type="device">
+  <diagram name="AIOps MCP Gateway Architecture" id="aiops-mcp-gateway">
+    <mxGraphModel dx="1200" dy="800" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1400" pageHeight="900" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- Title -->
+        <mxCell id="title" value="AIOps MCP Gateway Proxy Architecture" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;fontSize=24;fontStyle=1;fontColor=#232F3E;" vertex="1" parent="1">
+          <mxGeometry x="400" y="20" width="500" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- Client Section -->
+        <mxCell id="client-box" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E8F4F8;strokeColor=#147EBA;strokeWidth=2;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="100" width="180" height="200" as="geometry" />
+        </mxCell>
+        <mxCell id="client-label" value="Client" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=14;fontStyle=1;fontColor=#147EBA;" vertex="1" parent="1">
+          <mxGeometry x="90" y="105" width="80" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="user" value="" style="sketch=0;outlineConnect=0;fontColor=#232F3E;gradientColor=none;fillColor=#232F3E;strokeColor=none;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=12;fontStyle=0;aspect=fixed;pointerEvents=1;shape=mxgraph.aws4.user;" vertex="1" parent="1">
+          <mxGeometry x="91" y="140" width="58" height="58" as="geometry" />
+        </mxCell>
+        <mxCell id="user-label" value="QuickSuite&#xa;(MCP Client)" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="70" y="200" width="100" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="jwt-label" value="JWT Token&#xa;(Amazon Federate)" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=10;fontColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="60" y="245" width="120" height="30" as="geometry" />
+        </mxCell>
+
+        <!-- AgentCore Gateway Section -->
+        <mxCell id="gateway-box" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF3E0;strokeColor=#FF9900;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="280" y="100" width="220" height="280" as="geometry" />
+        </mxCell>
+        <mxCell id="gateway-label" value="Amazon Bedrock AgentCore" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=14;fontStyle=1;fontColor=#FF9900;" vertex="1" parent="1">
+          <mxGeometry x="290" y="105" width="200" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="gateway" value="" style="sketch=0;outlineConnect=0;fontColor=#232F3E;gradientColor=none;fillColor=#8C4FFF;strokeColor=none;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=12;fontStyle=0;aspect=fixed;pointerEvents=1;shape=mxgraph.aws4.api_gateway;" vertex="1" parent="1">
+          <mxGeometry x="351" y="135" width="78" height="78" as="geometry" />
+        </mxCell>
+        <mxCell id="gateway-name" value="AgentCore Gateway&#xa;aiops-gateway-qjvhrlob0y" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="310" y="215" width="160" height="35" as="geometry" />
+        </mxCell>
+        <mxCell id="gateway-url" value="gateway.bedrock-agentcore.&#xa;us-east-1.amazonaws.com/mcp" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=9;fontColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="300" y="248" width="180" height="30" as="geometry" />
+        </mxCell>
+
+        <!-- Gateway IAM Role -->
+        <mxCell id="gateway-iam" value="" style="sketch=0;outlineConnect=0;fontColor=#232F3E;gradientColor=none;fillColor=#DD344C;strokeColor=none;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=12;fontStyle=0;aspect=fixed;pointerEvents=1;shape=mxgraph.aws4.role;" vertex="1" parent="1">
+          <mxGeometry x="305" y="290" width="40" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="gateway-iam-label" value="Gateway Service Role&#xa;...GatewayDefaultServiceRole..." style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=9;fontColor=#DD344C;" vertex="1" parent="1">
+          <mxGeometry x="350" y="290" width="140" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="gateway-iam-perms" value="lambda:InvokeFunction" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=8;fontColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="350" y="330" width="130" height="20" as="geometry" />
+        </mxCell>
+
+        <!-- Lambda Section -->
+        <mxCell id="lambda-box" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF8E1;strokeColor=#FF9900;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="560" y="100" width="220" height="280" as="geometry" />
+        </mxCell>
+        <mxCell id="lambda-label" value="AWS Lambda" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=14;fontStyle=1;fontColor=#FF9900;" vertex="1" parent="1">
+          <mxGeometry x="620" y="105" width="100" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="lambda" value="" style="sketch=0;outlineConnect=0;fontColor=#232F3E;gradientColor=none;fillColor=#ED7100;strokeColor=none;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=12;fontStyle=0;aspect=fixed;pointerEvents=1;shape=mxgraph.aws4.lambda_function;" vertex="1" parent="1">
+          <mxGeometry x="631" y="135" width="78" height="78" as="geometry" />
+        </mxCell>
+        <mxCell id="lambda-name" value="aiops-mcp-gateway-proxy&#xa;(MCP Proxy Lambda)" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="590" y="215" width="160" height="35" as="geometry" />
+        </mxCell>
+        <mxCell id="lambda-desc" value="Translates gateway calls to&#xa;InvokeAgentRuntime API" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=9;fontColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="590" y="248" width="160" height="30" as="geometry" />
+        </mxCell>
+
+        <!-- Lambda IAM Role -->
+        <mxCell id="lambda-iam" value="" style="sketch=0;outlineConnect=0;fontColor=#232F3E;gradientColor=none;fillColor=#DD344C;strokeColor=none;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=12;fontStyle=0;aspect=fixed;pointerEvents=1;shape=mxgraph.aws4.role;" vertex="1" parent="1">
+          <mxGeometry x="585" y="290" width="40" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="lambda-iam-label" value="Lambda Execution Role&#xa;AIOpsGatewayMCPProxyLambdaRole" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=9;fontColor=#DD344C;" vertex="1" parent="1">
+          <mxGeometry x="630" y="290" width="140" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="lambda-iam-perms" value="bedrock-agentcore:InvokeAgentRuntime" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=8;fontColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="630" y="330" width="140" height="20" as="geometry" />
+        </mxCell>
+
+        <!-- Runtime Section -->
+        <mxCell id="runtime-box" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E8F5E9;strokeColor=#3F8624;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="840" y="100" width="220" height="280" as="geometry" />
+        </mxCell>
+        <mxCell id="runtime-label" value="AgentCore Runtime" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=14;fontStyle=1;fontColor=#3F8624;" vertex="1" parent="1">
+          <mxGeometry x="880" y="105" width="140" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="runtime" value="" style="sketch=0;outlineConnect=0;fontColor=#232F3E;gradientColor=none;fillColor=#ED7100;strokeColor=none;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=12;fontStyle=0;aspect=fixed;pointerEvents=1;shape=mxgraph.aws4.container_1;" vertex="1" parent="1">
+          <mxGeometry x="911" y="135" width="78" height="78" as="geometry" />
+        </mxCell>
+        <mxCell id="runtime-name" value="hosted_agent_p381m&#xa;(AWS API MCP Server)" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="870" y="215" width="160" height="35" as="geometry" />
+        </mxCell>
+        <mxCell id="runtime-desc" value="aws-api-mcp-server:1.2.0&#xa;MCP Protocol / Streamable HTTP" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=9;fontColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="870" y="248" width="160" height="30" as="geometry" />
+        </mxCell>
+
+        <!-- Runtime IAM Role -->
+        <mxCell id="runtime-iam" value="" style="sketch=0;outlineConnect=0;fontColor=#232F3E;gradientColor=none;fillColor=#DD344C;strokeColor=none;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=12;fontStyle=0;aspect=fixed;pointerEvents=1;shape=mxgraph.aws4.role;" vertex="1" parent="1">
+          <mxGeometry x="865" y="290" width="40" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="runtime-iam-label" value="Runtime Service Role&#xa;...RuntimeDefaultServiceRole-g2f5w" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=9;fontColor=#DD344C;" vertex="1" parent="1">
+          <mxGeometry x="910" y="290" width="140" height="40" as="geometry" />
+        </mxCell>
+        <mxCell id="runtime-iam-perms" value="ReadOnlyAccess (AWS Managed)" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=8;fontColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="910" y="330" width="140" height="20" as="geometry" />
+        </mxCell>
+
+        <!-- AWS Services Section -->
+        <mxCell id="aws-box" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#ECEFF1;strokeColor=#546E7A;strokeWidth=2;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="1120" y="100" width="180" height="280" as="geometry" />
+        </mxCell>
+        <mxCell id="aws-label" value="AWS Services" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=14;fontStyle=1;fontColor=#546E7A;" vertex="1" parent="1">
+          <mxGeometry x="1155" y="105" width="110" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="s3" value="" style="sketch=0;outlineConnect=0;fontColor=#232F3E;gradientColor=none;fillColor=#7AA116;strokeColor=none;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=12;fontStyle=0;aspect=fixed;pointerEvents=1;shape=mxgraph.aws4.bucket;" vertex="1" parent="1">
+          <mxGeometry x="1145" y="140" width="50" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="s3-label" value="S3" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1150" y="190" width="40" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="ec2" value="" style="sketch=0;outlineConnect=0;fontColor=#232F3E;gradientColor=none;fillColor=#ED7100;strokeColor=none;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=12;fontStyle=0;aspect=fixed;pointerEvents=1;shape=mxgraph.aws4.instance;" vertex="1" parent="1">
+          <mxGeometry x="1215" y="140" width="50" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="ec2-label" value="EC2" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1220" y="190" width="40" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="iam-svc" value="" style="sketch=0;outlineConnect=0;fontColor=#232F3E;gradientColor=none;fillColor=#DD344C;strokeColor=none;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=12;fontStyle=0;aspect=fixed;pointerEvents=1;shape=mxgraph.aws4.identity_and_access_management;" vertex="1" parent="1">
+          <mxGeometry x="1145" y="220" width="50" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="iam-label" value="IAM" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1150" y="270" width="40" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="cloudwatch" value="" style="sketch=0;outlineConnect=0;fontColor=#232F3E;gradientColor=none;fillColor=#E7157B;strokeColor=none;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=12;fontStyle=0;aspect=fixed;pointerEvents=1;shape=mxgraph.aws4.cloudwatch;" vertex="1" parent="1">
+          <mxGeometry x="1215" y="220" width="50" height="50" as="geometry" />
+        </mxCell>
+        <mxCell id="cw-label" value="CloudWatch" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1200" y="270" width="80" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="more-services" value="+ 200+ Services" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=11;fontStyle=2;fontColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="1155" y="310" width="100" height="20" as="geometry" />
+        </mxCell>
+
+        <!-- Arrows/Connections -->
+        <mxCell id="arrow1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#232F3E;endArrow=block;endFill=1;" edge="1" parent="1" source="user" target="gateway">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="arrow1-label" value="1. MCP Request&#xa;(JWT Auth)" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=10;fontColor=#232F3E;" vertex="1" parent="1">
+          <mxGeometry x="200" y="130" width="90" height="30" as="geometry" />
+        </mxCell>
+
+        <mxCell id="arrow2" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#232F3E;endArrow=block;endFill=1;" edge="1" parent="1" source="gateway" target="lambda">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="arrow2-label" value="2. Invoke Lambda&#xa;(Gateway IAM Role)" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=10;fontColor=#232F3E;" vertex="1" parent="1">
+          <mxGeometry x="480" y="130" width="100" height="30" as="geometry" />
+        </mxCell>
+
+        <mxCell id="arrow3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#232F3E;endArrow=block;endFill=1;" edge="1" parent="1" source="lambda" target="runtime">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="arrow3-label" value="3. InvokeAgentRuntime&#xa;(Lambda Role)" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=10;fontColor=#232F3E;" vertex="1" parent="1">
+          <mxGeometry x="755" y="130" width="110" height="30" as="geometry" />
+        </mxCell>
+
+        <mxCell id="arrow4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeWidth=2;strokeColor=#232F3E;endArrow=block;endFill=1;" edge="1" parent="1" source="runtime" target="s3">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="arrow4-label" value="4. AWS CLI&#xa;(Runtime Role)" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=10;fontColor=#232F3E;" vertex="1" parent="1">
+          <mxGeometry x="1040" y="130" width="80" height="30" as="geometry" />
+        </mxCell>
+
+        <!-- Tools Box -->
+        <mxCell id="tools-box" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F3E5F5;strokeColor=#7B1FA2;strokeWidth=1;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="840" y="420" width="220" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="tools-label" value="MCP Tools Available" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=12;fontStyle=1;fontColor=#7B1FA2;" vertex="1" parent="1">
+          <mxGeometry x="880" y="425" width="140" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="tool1" value="call_aws - Execute AWS CLI commands" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="855" y="450" width="200" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="tool2" value="suggest_aws_commands - NL to CLI" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="855" y="475" width="200" height="20" as="geometry" />
+        </mxCell>
+
+        <!-- Legend -->
+        <mxCell id="legend-box" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FAFAFA;strokeColor=#BDBDBD;strokeWidth=1;" vertex="1" parent="1">
+          <mxGeometry x="40" y="420" width="300" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="legend-title" value="Legend" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=12;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="50" y="425" width="60" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="legend-role" value="" style="sketch=0;outlineConnect=0;fontColor=#232F3E;gradientColor=none;fillColor=#DD344C;strokeColor=none;dashed=0;verticalLabelPosition=bottom;verticalAlign=top;align=center;html=1;fontSize=12;fontStyle=0;aspect=fixed;pointerEvents=1;shape=mxgraph.aws4.role;" vertex="1" parent="1">
+          <mxGeometry x="55" y="450" width="25" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="legend-role-label" value="= IAM Role" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="85" y="452" width="70" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="legend-arrow" value="→" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontSize=16;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="55" y="480" width="25" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="legend-arrow-label" value="= Request flow direction" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="85" y="480" width="130" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="account-id" value="AWS Account: 028969191743" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=10;fontColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="180" y="450" width="150" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="region" value="Region: us-east-1" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=10;fontColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="180" y="470" width="100" height="20" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
