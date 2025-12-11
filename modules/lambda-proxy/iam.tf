@@ -1,0 +1,54 @@
+# -----------------------------------------------------------------------------
+# IAM Role for Lambda Proxy Function
+# -----------------------------------------------------------------------------
+
+data "aws_caller_identity" "current" {}
+
+# Trust policy for Lambda
+data "aws_iam_policy_document" "lambda_trust" {
+  statement {
+    effect  = "Allow"
+    actions = ["sts:AssumeRole"]
+
+    principals {
+      type        = "Service"
+      identifiers = ["lambda.amazonaws.com"]
+    }
+  }
+}
+
+resource "aws_iam_role" "lambda" {
+  name               = "${var.project_name}-lambda-role"
+  assume_role_policy = data.aws_iam_policy_document.lambda_trust.json
+
+  tags = var.tags
+}
+
+# Lambda permissions - CloudWatch Logs and InvokeAgentRuntime
+data "aws_iam_policy_document" "lambda_permissions" {
+  # CloudWatch Logs
+  statement {
+    sid    = "CloudWatchLogs"
+    effect = "Allow"
+    actions = [
+      "logs:CreateLogGroup",
+      "logs:CreateLogStream",
+      "logs:PutLogEvents"
+    ]
+    resources = ["arn:aws:logs:${var.aws_region}:${data.aws_caller_identity.current.account_id}:log-group:/aws/lambda/${var.project_name}-proxy:*"]
+  }
+
+  # InvokeAgentRuntime permission
+  statement {
+    sid       = "InvokeAgentRuntime"
+    effect    = "Allow"
+    actions   = ["bedrock-agentcore:InvokeAgentRuntime"]
+    resources = [var.runtime_arn]
+  }
+}
+
+resource "aws_iam_role_policy" "lambda_permissions" {
+  name   = "${var.project_name}-lambda-permissions"
+  role   = aws_iam_role.lambda.id
+  policy = data.aws_iam_policy_document.lambda_permissions.json
+}
