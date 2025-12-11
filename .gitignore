@@ -1,0 +1,22 @@
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.*
+crash.log
+*.tfvars
+!*.tfvars.example
+
+# Environment
+.env
+!.env.example
+
+# IDE
+.idea/
+*.swp
+.vscode/
+
+# OS
+.DS_Store
+
+# Build artifacts (keep lambda zips in modules)
+/lambda_function.zip
