@@ -6,8 +6,8 @@ Deploy an Amazon Bedrock AgentCore Gateway that exposes MCP (Model Context Proto
 
 ```
 ┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐
-│   Claude Code   │────▶│    AgentCore    │────▶│  Lambda Proxy   │────▶│   AgentCore     │
-│   (MCP Client)  │     │    Gateway      │     │                 │     │   Runtime       │
+│   MCP Client    │────▶│    AgentCore    │────▶│  Lambda Proxy   │────▶│   AgentCore     │
+│  (AI Assistant) │     │    Gateway      │     │                 │     │   Runtime       │
 │                 │◀────│  (Federate JWT) │◀────│                 │◀────│ (MCP Server)    │
 └─────────────────┘     └─────────────────┘     └─────────────────┘     └─────────────────┘
                               │                                               │
