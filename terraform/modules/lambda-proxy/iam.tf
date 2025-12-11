@@ -38,12 +38,15 @@ data "aws_iam_policy_document" "lambda_permissions" {
     resources = ["arn:aws:logs:${var.aws_region}:${data.aws_caller_identity.current.account_id}:log-group:/aws/lambda/${var.project_name}-proxy:*"]
   }
 
-  # InvokeAgentRuntime permission
+  # InvokeAgentRuntime permission (includes runtime-endpoint sub-resources)
   statement {
     sid       = "InvokeAgentRuntime"
     effect    = "Allow"
     actions   = ["bedrock-agentcore:InvokeAgentRuntime"]
-    resources = [var.runtime_arn]
+    resources = [
+      var.runtime_arn,
+      "${var.runtime_arn}/*"
+    ]
   }
 }
 
