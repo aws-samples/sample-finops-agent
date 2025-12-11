@@ -1,0 +1,69 @@
+# -----------------------------------------------------------------------------
+# AIOps MCP Gateway Proxy - Terraform Variables
+# -----------------------------------------------------------------------------
+# Copy this file to terraform.tfvars and customize for your deployment
+# -----------------------------------------------------------------------------
+
+# REQUIRED: Project name prefix (must start with letter, lowercase, hyphens ok)
+project_name = "aiops-mcp-gateway"
+
+# AWS region to deploy resources
+aws_region = "us-east-1"
+
+# -----------------------------------------------------------------------------
+# MCP Server Configuration
+# -----------------------------------------------------------------------------
+
+# Version of aws-api-mcp-server from AWS Marketplace
+# Check latest version: https://aws.amazon.com/marketplace/pp/prodview-lqqkwbcraxsgw
+mcp_server_image_version = "1.2.0"
+
+# ECR registry for aws-api-mcp-server (AWS Marketplace - do not change)
+# mcp_server_image_registry = "709825985650.dkr.ecr.us-east-1.amazonaws.com/amazon-web-services/aws-api-mcp-server"
+
+# -----------------------------------------------------------------------------
+# Lambda Configuration
+# -----------------------------------------------------------------------------
+
+# Lambda function timeout in seconds (1-900)
+lambda_timeout = 30
+
+# Lambda function memory in MB (128-10240)
+lambda_memory_size = 256
+
+# -----------------------------------------------------------------------------
+# Gateway Configuration
+# -----------------------------------------------------------------------------
+
+# Authentication method: CUSTOM_JWT (Federate), AWS_IAM (SIGV4), or NONE
+gateway_auth_type = "CUSTOM_JWT"
+
+# Federate JWT Configuration (required when gateway_auth_type = CUSTOM_JWT)
+jwt_discovery_url     = "https://idp-integ.federate.amazon.com/.well-known/openid-configuration"
+jwt_allowed_audiences = ["mcp-federate-integ-es"]
+jwt_allowed_clients   = []  # Empty = allow all clients
+
+# -----------------------------------------------------------------------------
+# Runtime Permissions
+# -----------------------------------------------------------------------------
+
+# AWS managed policy for runtime (what AWS APIs the MCP server can access)
+# Default: ReadOnlyAccess - allows read-only access to most AWS services
+# For more permissions, use: arn:aws:iam::aws:policy/PowerUserAccess
+runtime_aws_policy_arn = "arn:aws:iam::aws:policy/ReadOnlyAccess"
+
+# -----------------------------------------------------------------------------
+# Optional Configuration
+# -----------------------------------------------------------------------------
+
+# Environment name (dev, staging, prod)
+environment = "dev"
+
+# Tags applied to all resources
+tags = {
+  Project     = "AIOps MCP Gateway"
+  ManagedBy   = "Terraform"
+  Owner       = "tracilim"
+  CostCenter  = "root"
+  auto-delete = "no"
+}
