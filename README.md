@@ -52,32 +52,29 @@ Set up Amazon Federate in nonprod environment for JWT authentication. This enabl
 ## Quick Start
 
 ```bash
-# 1. Navigate to terraform directory
-cd terraform/
-
-# 2. Run initial setup (creates config files from examples)
+# 1. Run initial setup (creates config files from examples)
 make setup
 
-# 3. Edit configuration files
-#    - config/.env: Set your AWS_PROFILE and AWS_REGION
-#    - terraform.tfvars: Set your project settings and tags
+# 2. Edit configuration files
+#    - terraform/config/.env: Set your AWS_PROFILE and AWS_REGION
+#    - terraform/terraform.tfvars: Set your project settings
 
-# 4. Initialize Terraform
+# 3. Initialize Terraform
 make init
 
-# 5. Review the execution plan
+# 4. Review the execution plan
 make plan
 
-# 6. Deploy all resources
+# 5. Deploy all resources
 make apply
 
-# 7. Get the gateway endpoint for MCP client configuration
+# 6. Get the gateway endpoint for MCP client configuration
 make output
 ```
 
 ## Configuration
 
-### config/.env (AWS Credentials for Makefile)
+### terraform/config/.env (AWS Credentials for Makefile)
 
 ```bash
 AWS_PROFILE=default
@@ -259,6 +256,7 @@ make destroy-auto
 aiops_mcp_gateway_proxy/
 ├── .gitignore                 # Git ignore patterns
 ├── .gitmessage                # Commit message template
+├── Makefile                   # Build commands (run from root)
 ├── README.md                  # This file
 │
 ├── docs/
@@ -277,7 +275,6 @@ aiops_mcp_gateway_proxy/
     ├── variables.tf           # Input variables
     ├── outputs.tf             # Output values
     ├── versions.tf            # Provider requirements
-    ├── Makefile               # Command wrapper
     │
     ├── config/                # Configuration examples
     │   ├── terraform.tfvars.example

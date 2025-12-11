@@ -4,16 +4,19 @@
 # Wrapper for terraform commands with AWS credential management
 # -----------------------------------------------------------------------------
 
-# Load from config/.env if exists (for Makefile AWS credentials only)
--include config/.env
+# Load from terraform/config/.env if exists (for Makefile AWS credentials only)
+-include terraform/config/.env
 export
+
+# Terraform directory
+TF_DIR := terraform
 
 # Defaults (override via .env or environment)
 AWS_PROFILE ?= default
 AWS_REGION  ?= us-east-1
 
-# Common terraform command with AWS credentials
-TF := AWS_PROFILE=$(AWS_PROFILE) AWS_REGION=$(AWS_REGION) terraform
+# Common terraform command with AWS credentials (runs in terraform/ directory)
+TF := AWS_PROFILE=$(AWS_PROFILE) AWS_REGION=$(AWS_REGION) terraform -chdir=$(TF_DIR)
 
 .PHONY: help setup init plan apply apply-auto destroy output fmt validate lint-init lint check clean
 
@@ -29,22 +32,22 @@ help: ## Show this help
 	@echo "  AWS_REGION:  $(AWS_REGION)"
 
 setup: ## Initial setup - copy example configs
-	@if [ ! -f terraform.tfvars ]; then \
-		cp config/terraform.tfvars.example terraform.tfvars; \
-		echo "Created terraform.tfvars - please edit with your values"; \
+	@if [ ! -f $(TF_DIR)/terraform.tfvars ]; then \
+		cp $(TF_DIR)/config/terraform.tfvars.example $(TF_DIR)/terraform.tfvars; \
+		echo "Created $(TF_DIR)/terraform.tfvars - please edit with your values"; \
 	else \
-		echo "terraform.tfvars already exists"; \
+		echo "$(TF_DIR)/terraform.tfvars already exists"; \
 	fi
-	@if [ ! -f config/.env ]; then \
-		cp config/.env.example config/.env; \
-		echo "Created config/.env - please edit with your AWS profile/region"; \
+	@if [ ! -f $(TF_DIR)/config/.env ]; then \
+		cp $(TF_DIR)/config/.env.example $(TF_DIR)/config/.env; \
+		echo "Created $(TF_DIR)/config/.env - please edit with your AWS profile/region"; \
 	else \
-		echo "config/.env already exists"; \
+		echo "$(TF_DIR)/config/.env already exists"; \
 	fi
 	@echo ""
 	@echo "Next steps:"
-	@echo "  1. Edit config/.env with your AWS_PROFILE and AWS_REGION"
-	@echo "  2. Edit terraform.tfvars with your project settings"
+	@echo "  1. Edit $(TF_DIR)/config/.env with your AWS_PROFILE and AWS_REGION"
+	@echo "  2. Edit $(TF_DIR)/terraform.tfvars with your project settings"
 	@echo "  3. Run 'make init' to initialize Terraform"
 
 init: ## Initialize Terraform
@@ -80,21 +83,21 @@ lint-init: ## Initialize tflint plugins (run once after install)
 
 lint: ## Run tflint (install: brew install tflint)
 	@command -v tflint >/dev/null 2>&1 || { echo "tflint not installed. Run: brew install tflint"; exit 1; }
-	tflint --config $(CURDIR)/config/.tflint.hcl
-	tflint --config $(CURDIR)/config/.tflint.hcl --chdir modules/agentcore-runtime
-	tflint --config $(CURDIR)/config/.tflint.hcl --chdir modules/agentcore-gateway
-	tflint --config $(CURDIR)/config/.tflint.hcl --chdir modules/lambda-proxy
+	tflint --config $(CURDIR)/$(TF_DIR)/config/.tflint.hcl --chdir $(TF_DIR)
+	tflint --config $(CURDIR)/$(TF_DIR)/config/.tflint.hcl --chdir $(TF_DIR)/modules/agentcore-runtime
+	tflint --config $(CURDIR)/$(TF_DIR)/config/.tflint.hcl --chdir $(TF_DIR)/modules/agentcore-gateway
+	tflint --config $(CURDIR)/$(TF_DIR)/config/.tflint.hcl --chdir $(TF_DIR)/modules/lambda-proxy
 
 check: fmt validate lint ## Run all checks (fmt, validate, lint)
 	@echo "All checks passed!"
 
 clean: ## Remove local Terraform files (keeps config)
-	rm -rf .terraform .terraform.lock.hcl
+	rm -rf $(TF_DIR)/.terraform $(TF_DIR)/.terraform.lock.hcl
 
 clean-all: ## Remove all Terraform files including state
 	@echo "WARNING: This will delete terraform.tfstate!"
 	@read -p "Are you sure? [y/N] " confirm && [ "$$confirm" = "y" ] || exit 1
-	rm -rf .terraform .terraform.lock.hcl terraform.tfstate terraform.tfstate.backup
+	rm -rf $(TF_DIR)/.terraform $(TF_DIR)/.terraform.lock.hcl $(TF_DIR)/terraform.tfstate $(TF_DIR)/terraform.tfstate.backup
 
 # Convenience targets
 refresh: ## Refresh state
