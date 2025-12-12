@@ -179,7 +179,19 @@ The AgentCore Gateway is designed to integrate with QuickSuite for enterprise MC
 
 ## Runtime Permissions
 
-By default, the MCP server has `ReadOnlyAccess` to AWS APIs. To change permissions:
+By default, the MCP server has `ReadOnlyAccess` to AWS APIs, plus additional write permissions for specific services:
+
+### Included Permissions
+
+| Service | Permissions | Purpose |
+|---------|-------------|---------|
+| AWS APIs | ReadOnlyAccess | Read access to most AWS services |
+| Athena | StartQueryExecution, StopQueryExecution | Execute Athena queries |
+| S3 | PutObject, GetBucketLocation | Write Athena query results |
+
+The S3 write permissions are scoped to buckets matching `*-athena-results` and `*-cur-*` patterns.
+
+### Customizing Permissions
 
 ```hcl
 # For more permissions (use with caution)

@@ -136,3 +136,41 @@ resource "aws_iam_role_policy_attachment" "aws_api_access" {
   role       = aws_iam_role.runtime.name
   policy_arn = var.aws_policy_arn
 }
+
+# Athena query execution permissions (not included in ReadOnlyAccess)
+data "aws_iam_policy_document" "athena_query" {
+  # Athena query execution
+  statement {
+    sid    = "AthenaQueryExecution"
+    effect = "Allow"
+    actions = [
+      "athena:StartQueryExecution",
+      "athena:StopQueryExecution"
+    ]
+    resources = [
+      "arn:aws:athena:${var.aws_region}:${data.aws_caller_identity.current.account_id}:workgroup/*"
+    ]
+  }
+
+  # S3 write access for Athena query results
+  statement {
+    sid    = "AthenaResultsWrite"
+    effect = "Allow"
+    actions = [
+      "s3:PutObject",
+      "s3:GetBucketLocation"
+    ]
+    resources = [
+      "arn:aws:s3:::*-athena-results",
+      "arn:aws:s3:::*-athena-results/*",
+      "arn:aws:s3:::*-cur-*",
+      "arn:aws:s3:::*-cur-*/*"
+    ]
+  }
+}
+
+resource "aws_iam_role_policy" "athena_query" {
+  name   = "${var.project_name}-athena-query"
+  role   = aws_iam_role.runtime.id
+  policy = data.aws_iam_policy_document.athena_query.json
+}
