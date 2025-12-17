@@ -101,3 +101,7 @@ logs/
 *.key
 credentials.json
 secrets.json
+
+# Local files
+CLAUDE.md
+prompts/cur_analysis_report.md
