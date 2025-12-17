@@ -37,13 +37,16 @@ resource "aws_iam_role" "gateway" {
   tags = var.tags
 }
 
-# Permission to invoke Lambda
+# Permission to invoke Lambda targets
 data "aws_iam_policy_document" "gateway_permissions" {
   statement {
-    sid       = "InvokeLambdaTarget"
+    sid       = "InvokeLambdaTargets"
     effect    = "Allow"
     actions   = ["lambda:InvokeFunction"]
-    resources = [var.lambda_function_arn]
+    resources = concat(
+      [var.lambda_function_arn],
+      [for t in var.mcp_lambda_targets : t.lambda_arn]
+    )
   }
 }
 

@@ -31,3 +31,8 @@ output "role_arn" {
   description = "IAM Role ARN used by the Gateway"
   value       = aws_iam_role.gateway.arn
 }
+
+output "mcp_target_ids" {
+  description = "Map of MCP Lambda target names to their target IDs"
+  value       = { for k, v in aws_bedrockagentcore_gateway_target.mcp_lambda : k => v.target_id }
+}

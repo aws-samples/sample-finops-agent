@@ -18,7 +18,7 @@ AWS_REGION  ?= us-east-1
 # Common terraform command with AWS credentials (runs in terraform/ directory)
 TF := AWS_PROFILE=$(AWS_PROFILE) AWS_REGION=$(AWS_REGION) terraform -chdir=$(TF_DIR)
 
-.PHONY: help setup init plan apply apply-auto destroy output fmt validate lint-init lint check clean
+.PHONY: help setup init plan apply apply-auto destroy output fmt validate lint-init lint check clean deploy update-schemas test-lambdas
 
 help: ## Show this help
 	@echo "AIOps MCP Gateway Proxy - Terraform Commands"
@@ -108,3 +108,13 @@ state-list: ## List resources in state
 
 show: ## Show current state
 	$(TF) show
+
+# MCP Lambda tools
+update-schemas: ## Update Gateway tool schemas (run after apply)
+	AWS_PROFILE=$(AWS_PROFILE) AWS_REGION=$(AWS_REGION) uv run --with boto3 python scripts/update_tool_schemas.py
+
+deploy: apply-auto update-schemas ## Full deploy (apply + update tool schemas)
+	@echo "Deployment complete!"
+
+test-lambdas: ## Test all MCP Lambda functions
+	AWS_PROFILE=$(AWS_PROFILE) AWS_REGION=$(AWS_REGION) uv run --with boto3 python scripts/test_mcp_lambdas.py

@@ -1,0 +1,19 @@
+[
+  {
+    "name": "analyze_cur",
+    "description": "Analyze AWS Cost and Usage Report data with multi-account breakdown. Executes 10 Athena queries covering monthly totals, service comparisons, regional costs, charge types, daily trends, usage details, purchase options, RI/SP savings, and instance types. Defaults to current month vs previous month.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "report_month": {
+          "type": "string",
+          "description": "Report month in YYYY-MM format. Defaults to current month."
+        },
+        "compare_month": {
+          "type": "string",
+          "description": "Comparison month in YYYY-MM format. Defaults to previous month."
+        }
+      }
+    }
+  }
+]

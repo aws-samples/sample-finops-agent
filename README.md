@@ -1,20 +1,29 @@
-# AIOps MCP Gateway Proxy - Terraform Deployment
+# AIOps MCP Gateway - Terraform Deployment
 
 Deploy an Amazon Bedrock AgentCore Gateway that exposes MCP (Model Context Protocol) endpoints for AI assistants. This gateway integrates with QuickSuite and provides AI tools (like Claude Code) secure access to AWS APIs.
 
 ## Architecture
 
 ```
-┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐
-│   MCP Client    │────▶│    AgentCore    │────▶│  Lambda Proxy   │────▶│   AgentCore     │
-│  (AI Assistant) │     │    Gateway      │     │                 │     │   Runtime       │
-│                 │◀────│  (Federate JWT) │◀────│                 │◀────│ (MCP Server)    │
-└─────────────────┘     └─────────────────┘     └─────────────────┘     └─────────────────┘
-                              │                                               │
-                              │                                               │
-                              ▼                                               ▼
-                        Authentication                                 AWS APIs
-                        (Amazon Federate)                         (ReadOnlyAccess)
+                                    ┌──────────────────────────────────────────────────────────────┐
+                                    │                         AWS Cloud                            │
+                                    │                                                              │
+┌──────────────┐    Federate JWT    │  ┌─────────────┐      ┌──────────────────────────────────┐  │
+│  MCP Client  │───────────────────▶│  │  AgentCore  │      │        Gateway Targets           │  │
+│              │                    │  │   Gateway   │      │                                  │  │
+│ Claude Code  │                    │  │             │─────▶│  ┌────────────────────────┐      │  │
+│  QuickSuite  │◀───────────────────│  │   (Router)  │      │  │   Lambda Proxy         │──────┼──┼──▶ AgentCore Runtime
+│              │                    │  │             │─────▶│  ├────────────────────────┤      │  │     (aws-api-mcp-server)
+└──────────────┘                    │  │             │      │  │   test-mcp             │      │  │
+                                    │  │             │─────▶│  ├────────────────────────┤      │  │
+                                    │  │             │      │  │   cost-explorer-mcp    │──────┼──┼──▶ Cost Explorer API
+                                    │  │             │─────▶│  ├────────────────────────┤      │  │
+                                    │  │             │      │  │   athena-mcp           │──────┼──┼──▶ Athena + S3 + Glue
+                                    │  │             │─────▶│  ├────────────────────────┤      │  │
+                                    │  └─────────────┘      │  │   cur-analyst-mcp      │──────┼──┼──▶ Cost Explorer + Athena
+                                    │                       │  └────────────────────────┘      │  │     (CUR 2.0 Analysis)
+                                    │                       └──────────────────────────────────┘  │
+                                    └──────────────────────────────────────────────────────────────┘
 ```
 
 ## Components
@@ -24,6 +33,41 @@ Deploy an Amazon Bedrock AgentCore Gateway that exposes MCP (Model Context Proto
 | **AgentCore Gateway** | MCP endpoint with Federate JWT authentication, integrates with QuickSuite |
 | **Lambda Proxy** | Translates Gateway MCP calls to AgentCore Runtime invocations |
 | **AgentCore Runtime** | Hosts aws-api-mcp-server container from AWS Marketplace |
+| **test-mcp Lambda** | Simple test tools (hello, echo) for Gateway verification |
+| **cost-explorer-mcp Lambda** | AWS Cost Explorer tools for cost analysis (6 tools) |
+| **athena-mcp Lambda** | AWS Athena tools for data lake queries (8 tools) |
+| **cur-analyst-mcp Lambda** | CUR 2.0 analysis combining Cost Explorer + Athena (1 tool) |
+
+## Available MCP Tools
+
+### AWS API MCP Server (via Lambda Proxy)
+- `call_aws` - Execute AWS CLI commands
+- `suggest_aws_commands` - Get AWS CLI command suggestions
+
+### Test MCP (test-mcp)
+- `hello` - Returns a greeting message
+- `echo` - Echoes back the provided message
+
+### Cost Explorer MCP (cost-explorer-mcp)
+- `get_today_date` - Get current date for time period calculations
+- `get_dimension_values` - Get available values for a dimension (SERVICE, REGION, etc.)
+- `get_tag_values` - Get available values for a tag key
+- `get_cost_and_usage` - Retrieve cost and usage data with filtering/grouping
+- `get_cost_and_usage_comparisons` - Compare costs between two time periods
+- `get_cost_forecast` - Generate cost forecasts
+
+### Athena MCP (athena-mcp)
+- `start_query_execution` - Start an Athena SQL query
+- `get_query_execution` - Get status and details of a query
+- `get_query_results` - Get results of a completed query
+- `list_query_executions` - List recent query executions
+- `list_databases` - List databases in a data catalog
+- `list_tables` - List tables in a database
+- `get_table_metadata` - Get detailed table metadata
+- `stop_query_execution` - Cancel a running query
+
+### CUR Analyst MCP (cur-analyst-mcp)
+- `analyze_cur` - Execute comprehensive CUR 2.0 analysis (combines Cost Explorer API + Athena queries for monthly cost reports)
 
 ## Prerequisites
 
@@ -65,10 +109,13 @@ make init
 # 4. Review the execution plan
 make plan
 
-# 5. Deploy all resources
-make apply
+# 5. Deploy all resources (Terraform + tool schema updates)
+make deploy
 
-# 6. Get the gateway endpoint for MCP client configuration
+# 6. Test the MCP Lambdas
+make test-lambdas
+
+# 7. Get the gateway endpoint for MCP client configuration
 make output
 ```
 
@@ -124,11 +171,16 @@ tags = {
 | `make plan` | Show execution plan |
 | `make apply` | Apply changes (with confirmation) |
 | `make apply-auto` | Apply changes (auto-approve) |
+| `make deploy` | Full deploy (apply + update tool schemas) |
+| `make update-schemas` | Update Gateway tool schemas (run after apply) |
+| `make test-lambdas` | Test all MCP Lambda functions |
 | `make destroy` | Destroy all resources |
 | `make output` | Show outputs (gateway endpoint, etc.) |
 | `make fmt` | Format Terraform files |
 | `make validate` | Validate configuration |
 | `make lint` | Run tflint checks |
+
+> **Note**: The Terraform AWS provider only supports 1 tool schema per Lambda target. Use `make deploy` or `make update-schemas` after `make apply` to register all tools via the AWS API.
 
 ## Outputs
 
@@ -155,7 +207,7 @@ mcp_client_config = {
 
 ### Claude Code (.mcp.json)
 
-After deployment, configure Claude Code with the gateway endpoint:
+After deployment, configure Claude Code with the gateway endpoint. You can access multiple targets:
 
 ```json
 {
@@ -164,17 +216,36 @@ After deployment, configure Claude Code with the gateway endpoint:
       "type": "agentcore",
       "gateway_url": "<gateway_endpoint from terraform output>",
       "target_name": "aiops-mcp-gateway-lambda-target"
+    },
+    "aws-cost-explorer": {
+      "type": "agentcore",
+      "gateway_url": "<gateway_endpoint from terraform output>",
+      "target_name": "cost-explorer-mcp"
+    },
+    "aws-athena": {
+      "type": "agentcore",
+      "gateway_url": "<gateway_endpoint from terraform output>",
+      "target_name": "athena-mcp"
     }
   }
 }
 ```
+
+### Available Gateway Targets
+
+| Target Name | Description |
+|-------------|-------------|
+| `<project_name>-lambda-target` | AWS API MCP server (call_aws, suggest_aws_commands) |
+| `test-mcp` | Test tools for Gateway verification |
+| `cost-explorer-mcp` | AWS Cost Explorer tools |
+| `athena-mcp` | AWS Athena query tools |
 
 ### QuickSuite Integration
 
 The AgentCore Gateway is designed to integrate with QuickSuite for enterprise MCP access. Configure QuickSuite with:
 
 - **Gateway URL**: The `gateway_endpoint` output value
-- **Target Name**: `<project_name>-lambda-target`
+- **Target Names**: See table above for available targets
 - **Auth Type**: CUSTOM_JWT (Federate)
 
 ## Runtime Permissions
@@ -265,7 +336,7 @@ make destroy-auto
 ## Project Structure
 
 ```
-aiops_mcp_gateway_proxy/
+aws-api-mcp-gateway/
 ├── .gitignore                 # Git ignore patterns
 ├── .gitmessage                # Commit message template
 ├── Makefile                   # Build commands (run from root)
@@ -279,8 +350,16 @@ aiops_mcp_gateway_proxy/
 │
 ├── src/
 │   └── lambda/
-│       └── proxy/
-│           └── lambda_function.py  # Lambda source code
+│       ├── proxy/
+│       │   └── lambda_function.py  # Lambda proxy source code
+│       │
+│       └── mcp_servers/            # MCP Lambda servers
+│           ├── test/
+│           │   └── lambda_function.py  # Test tools (hello, echo)
+│           ├── cost_explorer/
+│           │   └── lambda_function.py  # Cost Explorer tools
+│           └── athena/
+│               └── lambda_function.py  # Athena query tools
 │
 └── terraform/
     ├── main.tf                # Module orchestration
@@ -293,9 +372,15 @@ aiops_mcp_gateway_proxy/
     │   ├── .env.example
     │   └── .tflint.hcl
     │
+    ├── tool-schemas/          # MCP tool schema definitions
+    │   ├── test.json
+    │   ├── cost_explorer.json
+    │   └── athena.json
+    │
     └── modules/
         ├── agentcore-runtime/ # MCP Server (AWS Marketplace)
-        ├── lambda-proxy/      # Lambda function
+        ├── lambda-proxy/      # Lambda proxy function
+        ├── mcp-lambda/        # Reusable MCP Lambda module
         └── agentcore-gateway/ # Gateway configuration
 ```
 

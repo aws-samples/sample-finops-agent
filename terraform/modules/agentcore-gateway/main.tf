@@ -70,3 +70,41 @@ resource "aws_bedrockagentcore_gateway_target" "lambda" {
     }
   }
 }
+
+# -----------------------------------------------------------------------------
+# Dynamic MCP Lambda Targets
+# -----------------------------------------------------------------------------
+
+resource "aws_bedrockagentcore_gateway_target" "mcp_lambda" {
+  for_each = { for t in var.mcp_lambda_targets : t.name => t }
+
+  name        = each.value.name
+  description = each.value.description
+
+  gateway_identifier = aws_bedrockagentcore_gateway.mcp.gateway_id
+
+  # Use Gateway's IAM role to invoke Lambda
+  credential_provider_configuration {
+    gateway_iam_role {}
+  }
+
+  target_configuration {
+    mcp {
+      lambda {
+        lambda_arn = each.value.lambda_arn
+
+        tool_schema {
+          inline_payload {
+            name        = each.value.name
+            description = each.value.description
+
+            input_schema {
+              type        = "object"
+              description = "Tool input parameters"
+            }
+          }
+        }
+      }
+    }
+  }
+}

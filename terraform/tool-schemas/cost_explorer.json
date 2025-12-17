@@ -1,0 +1,151 @@
+[
+  {
+    "name": "get_today_date",
+    "description": "Get the current date for determining relevant time periods. Returns today's date, first of month, and last month's date range.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {}
+    }
+  },
+  {
+    "name": "get_dimension_values",
+    "description": "Get available values for a specific dimension (e.g., SERVICE, REGION, LINKED_ACCOUNT, USAGE_TYPE). Use this to discover what services or regions have costs.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "dimension": {
+          "type": "string",
+          "description": "Dimension name: SERVICE, REGION, LINKED_ACCOUNT, USAGE_TYPE, INSTANCE_TYPE, etc."
+        },
+        "start_date": {
+          "type": "string",
+          "description": "Start date (YYYY-MM-DD format)"
+        },
+        "end_date": {
+          "type": "string",
+          "description": "End date (YYYY-MM-DD format)"
+        }
+      }
+    }
+  },
+  {
+    "name": "get_tag_values",
+    "description": "Get available values for a specific cost allocation tag key. Use this to discover tag values for filtering costs.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "tag_key": {
+          "type": "string",
+          "description": "The tag key to get values for (e.g., 'Environment', 'Project')"
+        },
+        "start_date": {
+          "type": "string",
+          "description": "Start date (YYYY-MM-DD format)"
+        },
+        "end_date": {
+          "type": "string",
+          "description": "End date (YYYY-MM-DD format)"
+        }
+      },
+      "required": ["tag_key"]
+    }
+  },
+  {
+    "name": "get_cost_and_usage",
+    "description": "Retrieve AWS cost and usage data with filtering and grouping options. Use this to analyze costs by service, region, or other dimensions.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "start_date": {
+          "type": "string",
+          "description": "Start date (YYYY-MM-DD format). Defaults to first of current month."
+        },
+        "end_date": {
+          "type": "string",
+          "description": "End date (YYYY-MM-DD format). Defaults to today."
+        },
+        "granularity": {
+          "type": "string",
+          "description": "Time granularity: DAILY, MONTHLY, or HOURLY"
+        },
+        "metrics": {
+          "type": "array",
+          "items": {"type": "string"},
+          "description": "Cost metrics to retrieve: UnblendedCost, BlendedCost, AmortizedCost, UsageQuantity, etc."
+        },
+        "group_by": {
+          "type": "array",
+          "items": {"type": "string"},
+          "description": "Dimensions to group by: SERVICE, REGION, LINKED_ACCOUNT, USAGE_TYPE, etc."
+        },
+        "filter": {
+          "type": "object",
+          "description": "Cost Explorer filter expression (Dimensions, Tags, CostCategories)"
+        }
+      }
+    }
+  },
+  {
+    "name": "get_cost_and_usage_comparisons",
+    "description": "Compare costs between two time periods to identify changes and trends. Shows which services increased or decreased in cost.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "current_start": {
+          "type": "string",
+          "description": "Current period start date (YYYY-MM-DD)"
+        },
+        "current_end": {
+          "type": "string",
+          "description": "Current period end date (YYYY-MM-DD)"
+        },
+        "previous_start": {
+          "type": "string",
+          "description": "Previous period start date (YYYY-MM-DD)"
+        },
+        "previous_end": {
+          "type": "string",
+          "description": "Previous period end date (YYYY-MM-DD)"
+        },
+        "granularity": {
+          "type": "string",
+          "description": "Time granularity: DAILY or MONTHLY"
+        },
+        "metrics": {
+          "type": "array",
+          "items": {"type": "string"},
+          "description": "Cost metrics to compare"
+        },
+        "group_by": {
+          "type": "string",
+          "description": "Dimension to group by: SERVICE, REGION, LINKED_ACCOUNT, etc."
+        }
+      }
+    }
+  },
+  {
+    "name": "get_cost_forecast",
+    "description": "Generate cost forecasts based on historical usage patterns. Predicts future costs with confidence intervals.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "start_date": {
+          "type": "string",
+          "description": "Forecast start date (YYYY-MM-DD). Must be in the future."
+        },
+        "end_date": {
+          "type": "string",
+          "description": "Forecast end date (YYYY-MM-DD)"
+        },
+        "granularity": {
+          "type": "string",
+          "description": "Forecast granularity: DAILY or MONTHLY"
+        },
+        "metric": {
+          "type": "string",
+          "description": "Metric to forecast: UNBLENDED_COST, BLENDED_COST, AMORTIZED_COST, etc."
+        }
+      }
+    }
+  }
+]

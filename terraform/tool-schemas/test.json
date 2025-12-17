@@ -1,0 +1,29 @@
+[
+  {
+    "name": "hello",
+    "description": "Returns a friendly greeting message. Use this to test the Gateway integration.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Name to greet (optional, defaults to 'World')"
+        }
+      }
+    }
+  },
+  {
+    "name": "echo",
+    "description": "Echoes back the provided message. Use this to verify tool parameters are passed correctly.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "message": {
+          "type": "string",
+          "description": "Message to echo back"
+        }
+      },
+      "required": ["message"]
+    }
+  }
+]

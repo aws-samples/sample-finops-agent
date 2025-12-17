@@ -1,0 +1,172 @@
+[
+  {
+    "name": "start_query_execution",
+    "description": "Start an Athena SQL query execution. Returns a query execution ID to track the query status.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "query_string": {
+          "type": "string",
+          "description": "The SQL query to execute (required)"
+        },
+        "database": {
+          "type": "string",
+          "description": "Database name to query against"
+        },
+        "catalog": {
+          "type": "string",
+          "description": "Data catalog name (default: AwsDataCatalog)"
+        },
+        "workgroup": {
+          "type": "string",
+          "description": "Athena workgroup to use (default: primary)"
+        },
+        "output_location": {
+          "type": "string",
+          "description": "S3 location for query results (e.g., s3://bucket/path/)"
+        }
+      },
+      "required": ["query_string"]
+    }
+  },
+  {
+    "name": "get_query_execution",
+    "description": "Get the status and details of a query execution. Use this to check if a query has completed.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "query_execution_id": {
+          "type": "string",
+          "description": "The unique ID of the query execution (required)"
+        }
+      },
+      "required": ["query_execution_id"]
+    }
+  },
+  {
+    "name": "get_query_results",
+    "description": "Get the results of a completed query execution. Only works for queries with SUCCEEDED status.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "query_execution_id": {
+          "type": "string",
+          "description": "The unique ID of the query execution (required)"
+        },
+        "max_results": {
+          "type": "integer",
+          "description": "Maximum number of results to return (default: 100, max: 1000)"
+        },
+        "next_token": {
+          "type": "string",
+          "description": "Token for pagination to get more results"
+        }
+      },
+      "required": ["query_execution_id"]
+    }
+  },
+  {
+    "name": "list_query_executions",
+    "description": "List recent query executions in a workgroup. Shows query IDs, status, and truncated query text.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "workgroup": {
+          "type": "string",
+          "description": "Athena workgroup to list queries from (default: primary)"
+        },
+        "max_results": {
+          "type": "integer",
+          "description": "Maximum number of results (default: 50, max: 50)"
+        },
+        "next_token": {
+          "type": "string",
+          "description": "Token for pagination"
+        }
+      }
+    }
+  },
+  {
+    "name": "list_databases",
+    "description": "List databases in a data catalog. Use this to discover available databases for querying.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "catalog": {
+          "type": "string",
+          "description": "Data catalog name (default: AwsDataCatalog)"
+        },
+        "max_results": {
+          "type": "integer",
+          "description": "Maximum number of results (default: 50)"
+        },
+        "next_token": {
+          "type": "string",
+          "description": "Token for pagination"
+        }
+      }
+    }
+  },
+  {
+    "name": "list_tables",
+    "description": "List tables in a database. Use this to discover available tables for querying.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "database": {
+          "type": "string",
+          "description": "Database name (required)"
+        },
+        "catalog": {
+          "type": "string",
+          "description": "Data catalog name (default: AwsDataCatalog)"
+        },
+        "max_results": {
+          "type": "integer",
+          "description": "Maximum number of results (default: 50)"
+        },
+        "next_token": {
+          "type": "string",
+          "description": "Token for pagination"
+        }
+      },
+      "required": ["database"]
+    }
+  },
+  {
+    "name": "get_table_metadata",
+    "description": "Get detailed metadata about a specific table including columns, partition keys, and parameters.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "database": {
+          "type": "string",
+          "description": "Database name (required)"
+        },
+        "table": {
+          "type": "string",
+          "description": "Table name (required)"
+        },
+        "catalog": {
+          "type": "string",
+          "description": "Data catalog name (default: AwsDataCatalog)"
+        }
+      },
+      "required": ["database", "table"]
+    }
+  },
+  {
+    "name": "stop_query_execution",
+    "description": "Stop a running query execution. Use this to cancel long-running queries.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "query_execution_id": {
+          "type": "string",
+          "description": "The unique ID of the query execution to stop (required)"
+        }
+      },
+      "required": ["query_execution_id"]
+    }
+  }
+]

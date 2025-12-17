@@ -47,3 +47,13 @@ variable "tags" {
   type        = map(string)
   default     = {}
 }
+
+# -----------------------------------------------------------------------------
+# MCP Lambda Targets Configuration
+# -----------------------------------------------------------------------------
+
+variable "mcp_lambda_targets" {
+  description = "List of MCP Lambda targets to add to the gateway"
+  type        = any # List of objects with name, description, lambda_arn, tool_schemas
+  default     = []
+}
