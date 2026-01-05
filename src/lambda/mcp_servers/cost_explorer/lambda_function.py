@@ -40,8 +40,9 @@ Required IAM Permissions:
 """
 
 import json
-import boto3
 from datetime import datetime, timedelta
+
+import boto3
 
 
 def lambda_handler(event, context):
@@ -73,10 +74,7 @@ def lambda_handler(event, context):
     if handler:
         return handler(event)
     else:
-        return {
-            "error": f"Unknown tool: {tool_name}",
-            "available_tools": list(handlers.keys())
-        }
+        return {"error": f"Unknown tool: {tool_name}", "available_tools": list(handlers.keys())}
 
 
 def handle_get_today_date(event):
@@ -89,7 +87,7 @@ def handle_get_today_date(event):
         "day": today.day,
         "first_of_month": today.replace(day=1).strftime("%Y-%m-%d"),
         "last_month_start": (today.replace(day=1) - timedelta(days=1)).replace(day=1).strftime("%Y-%m-%d"),
-        "last_month_end": (today.replace(day=1) - timedelta(days=1)).strftime("%Y-%m-%d")
+        "last_month_end": (today.replace(day=1) - timedelta(days=1)).strftime("%Y-%m-%d"),
     }
 
 
@@ -108,17 +106,14 @@ def handle_get_dimension_values(event):
     ce = boto3.client("ce")
 
     try:
-        response = ce.get_dimension_values(
-            TimePeriod={"Start": start_date, "End": end_date},
-            Dimension=dimension
-        )
+        response = ce.get_dimension_values(TimePeriod={"Start": start_date, "End": end_date}, Dimension=dimension)
 
         values = [item["Value"] for item in response.get("DimensionValues", [])]
         return {
             "dimension": dimension,
             "time_period": {"start": start_date, "end": end_date},
             "values": values,
-            "count": len(values)
+            "count": len(values),
         }
     except Exception as e:
         return {"error": str(e), "dimension": dimension}
@@ -142,17 +137,14 @@ def handle_get_tag_values(event):
     ce = boto3.client("ce")
 
     try:
-        response = ce.get_tags(
-            TimePeriod={"Start": start_date, "End": end_date},
-            TagKey=tag_key
-        )
+        response = ce.get_tags(TimePeriod={"Start": start_date, "End": end_date}, TagKey=tag_key)
 
         values = response.get("Tags", [])
         return {
             "tag_key": tag_key,
             "time_period": {"start": start_date, "end": end_date},
             "values": values,
-            "count": len(values)
+            "count": len(values),
         }
     except Exception as e:
         return {"error": str(e), "tag_key": tag_key}
@@ -179,16 +171,14 @@ def handle_get_cost_and_usage(event):
         params = {
             "TimePeriod": {"Start": start_date, "End": end_date},
             "Granularity": granularity,
-            "Metrics": metrics if isinstance(metrics, list) else [metrics]
+            "Metrics": metrics if isinstance(metrics, list) else [metrics],
         }
 
         # Add group by if specified
         if group_by:
             if isinstance(group_by, str):
                 group_by = [group_by]
-            params["GroupBy"] = [
-                {"Type": "DIMENSION", "Key": dim} for dim in group_by
-            ]
+            params["GroupBy"] = [{"Type": "DIMENSION", "Key": dim} for dim in group_by]
 
         # Add filter if specified
         if filter_expr:
@@ -199,23 +189,16 @@ def handle_get_cost_and_usage(event):
         # Format results
         results = []
         for result in response.get("ResultsByTime", []):
-            period_result = {
-                "time_period": result.get("TimePeriod"),
-                "total": result.get("Total", {}),
-                "groups": []
-            }
+            period_result = {"time_period": result.get("TimePeriod"), "total": result.get("Total", {}), "groups": []}
             for group in result.get("Groups", []):
-                period_result["groups"].append({
-                    "keys": group.get("Keys", []),
-                    "metrics": group.get("Metrics", {})
-                })
+                period_result["groups"].append({"keys": group.get("Keys", []), "metrics": group.get("Metrics", {})})
             results.append(period_result)
 
         return {
             "time_period": {"start": start_date, "end": end_date},
             "granularity": granularity,
             "metrics": metrics,
-            "results": results
+            "results": results,
         }
     except Exception as e:
         return {"error": str(e)}
@@ -248,7 +231,7 @@ def handle_get_cost_and_usage_comparisons(event):
             TimePeriod={"Start": current_start, "End": current_end},
             Granularity=granularity,
             Metrics=metrics if isinstance(metrics, list) else [metrics],
-            GroupBy=[{"Type": "DIMENSION", "Key": group_by}]
+            GroupBy=[{"Type": "DIMENSION", "Key": group_by}],
         )
 
         # Get previous period costs
@@ -256,7 +239,7 @@ def handle_get_cost_and_usage_comparisons(event):
             TimePeriod={"Start": previous_start, "End": previous_end},
             Granularity=granularity,
             Metrics=metrics if isinstance(metrics, list) else [metrics],
-            GroupBy=[{"Type": "DIMENSION", "Key": group_by}]
+            GroupBy=[{"Type": "DIMENSION", "Key": group_by}],
         )
 
         # Calculate comparison
@@ -282,13 +265,15 @@ def handle_get_cost_and_usage_comparisons(event):
             previous = previous_costs.get(key, 0)
             change = current - previous
             change_pct = (change / previous * 100) if previous > 0 else (100 if current > 0 else 0)
-            comparisons.append({
-                "name": key,
-                "current_cost": round(current, 2),
-                "previous_cost": round(previous, 2),
-                "change": round(change, 2),
-                "change_percent": round(change_pct, 1)
-            })
+            comparisons.append(
+                {
+                    "name": key,
+                    "current_cost": round(current, 2),
+                    "previous_cost": round(previous, 2),
+                    "change": round(change, 2),
+                    "change_percent": round(change_pct, 1),
+                }
+            )
 
         # Sort by absolute change
         comparisons.sort(key=lambda x: abs(x["change"]), reverse=True)
@@ -299,7 +284,7 @@ def handle_get_cost_and_usage_comparisons(event):
             "group_by": group_by,
             "comparisons": comparisons[:20],  # Top 20
             "total_current": round(sum(current_costs.values()), 2),
-            "total_previous": round(sum(previous_costs.values()), 2)
+            "total_previous": round(sum(previous_costs.values()), 2),
         }
     except Exception as e:
         return {"error": str(e)}
@@ -324,9 +309,7 @@ def handle_get_cost_forecast(event):
 
     try:
         response = ce.get_cost_forecast(
-            TimePeriod={"Start": start_date, "End": end_date},
-            Granularity=granularity,
-            Metric=metric
+            TimePeriod={"Start": start_date, "End": end_date}, Granularity=granularity, Metric=metric
         )
 
         return {
@@ -335,17 +318,17 @@ def handle_get_cost_forecast(event):
             "metric": metric,
             "total_forecast": {
                 "amount": response.get("Total", {}).get("Amount"),
-                "unit": response.get("Total", {}).get("Unit")
+                "unit": response.get("Total", {}).get("Unit"),
             },
             "forecast_by_time": [
                 {
                     "time_period": item.get("TimePeriod"),
                     "mean_value": item.get("MeanValue"),
                     "prediction_interval_lower": item.get("PredictionIntervalLowerBound"),
-                    "prediction_interval_upper": item.get("PredictionIntervalUpperBound")
+                    "prediction_interval_upper": item.get("PredictionIntervalUpperBound"),
                 }
                 for item in response.get("ForecastResultsByTime", [])
-            ]
+            ],
         }
     except Exception as e:
         return {"error": str(e)}

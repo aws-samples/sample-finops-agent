@@ -4,10 +4,12 @@ Test script for MCP Lambda functions.
 Tests the test-mcp, cost-explorer-mcp, and athena-mcp Lambda functions.
 """
 
-import boto3
-import json
 import base64
+import json
 import os
+
+import boto3
+
 
 AWS_REGION = os.environ.get("AWS_REGION", "us-east-1")
 AWS_PROFILE = os.environ.get("AWS_PROFILE", "default")
@@ -19,11 +21,7 @@ def invoke_mcp_lambda(function_name: str, target_name: str, tool_name: str, payl
     client = session.client("lambda", region_name=AWS_REGION)
 
     # Create client context with tool name (format: target___tool)
-    client_context = {
-        "custom": {
-            "bedrockAgentCoreToolName": f"{target_name}___{tool_name}"
-        }
-    }
+    client_context = {"custom": {"bedrockAgentCoreToolName": f"{target_name}___{tool_name}"}}
     client_context_b64 = base64.b64encode(json.dumps(client_context).encode()).decode()
 
     response = client.invoke(
@@ -45,21 +43,13 @@ def test_test_mcp():
 
     # Test hello tool
     print("\n[1] hello tool...")
-    result = invoke_mcp_lambda(
-        "aiops-mcp-gateway-test-mcp",
-        "test-mcp",
-        "hello",
-        {"name": "Claude"}
-    )
+    result = invoke_mcp_lambda("aiops-mcp-gateway-test-mcp", "test-mcp", "hello", {"name": "Claude"})
     print(f"Result: {json.dumps(result, indent=2)}")
 
     # Test echo tool
     print("\n[2] echo tool...")
     result = invoke_mcp_lambda(
-        "aiops-mcp-gateway-test-mcp",
-        "test-mcp",
-        "echo",
-        {"message": "Hello from MCP Gateway!"}
+        "aiops-mcp-gateway-test-mcp", "test-mcp", "echo", {"message": "Hello from MCP Gateway!"}
     )
     print(f"Result: {json.dumps(result, indent=2)}")
 
@@ -72,21 +62,13 @@ def test_cost_explorer_mcp():
 
     # Test get_today_date tool
     print("\n[1] get_today_date tool...")
-    result = invoke_mcp_lambda(
-        "aiops-mcp-gateway-cost-explorer-mcp",
-        "cost-explorer-mcp",
-        "get_today_date",
-        {}
-    )
+    result = invoke_mcp_lambda("aiops-mcp-gateway-cost-explorer-mcp", "cost-explorer-mcp", "get_today_date", {})
     print(f"Result: {json.dumps(result, indent=2)}")
 
     # Test get_dimension_values tool
     print("\n[2] get_dimension_values tool (SERVICE)...")
     result = invoke_mcp_lambda(
-        "aiops-mcp-gateway-cost-explorer-mcp",
-        "cost-explorer-mcp",
-        "get_dimension_values",
-        {"dimension": "SERVICE"}
+        "aiops-mcp-gateway-cost-explorer-mcp", "cost-explorer-mcp", "get_dimension_values", {"dimension": "SERVICE"}
     )
     print(f"Result: {json.dumps(result, indent=2)[:500]}...")
 
@@ -99,12 +81,7 @@ def test_athena_mcp():
 
     # Test list_databases tool
     print("\n[1] list_databases tool...")
-    result = invoke_mcp_lambda(
-        "aiops-mcp-gateway-athena-mcp",
-        "athena-mcp",
-        "list_databases",
-        {}
-    )
+    result = invoke_mcp_lambda("aiops-mcp-gateway-athena-mcp", "athena-mcp", "list_databases", {})
     print(f"Result: {json.dumps(result, indent=2)[:500]}...")
 
 

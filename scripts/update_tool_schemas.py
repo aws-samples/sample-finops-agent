@@ -10,9 +10,10 @@ Usage:
     python3 scripts/update_tool_schemas.py
 """
 
-import boto3
-import json
 import os
+
+import boto3
+
 
 AWS_REGION = os.environ.get("AWS_REGION", "us-east-1")
 AWS_PROFILE = os.environ.get("AWS_PROFILE", "default")
@@ -33,11 +34,11 @@ TOOL_SCHEMAS = {
                     "properties": {
                         "cli_command": {
                             "type": "string",
-                            "description": "The full AWS CLI command to execute (e.g., 'aws s3 ls', 'aws ec2 describe-instances --region us-west-2')"
+                            "description": "The full AWS CLI command to execute (e.g., 'aws s3 ls', 'aws ec2 describe-instances --region us-west-2')",
                         }
                     },
-                    "required": ["cli_command"]
-                }
+                    "required": ["cli_command"],
+                },
             },
             {
                 "name": "suggest_aws_commands",
@@ -47,13 +48,13 @@ TOOL_SCHEMAS = {
                     "properties": {
                         "query": {
                             "type": "string",
-                            "description": "Natural language description of what you want to do (e.g., 'list all S3 buckets', 'get EC2 instance details')"
+                            "description": "Natural language description of what you want to do (e.g., 'list all S3 buckets', 'get EC2 instance details')",
                         }
                     },
-                    "required": ["query"]
-                }
-            }
-        ]
+                    "required": ["query"],
+                },
+            },
+        ],
     },
     "test-mcp": {
         "lambda_arn": f"arn:aws:lambda:{AWS_REGION}:{ACCOUNT_ID}:function:aiops-mcp-gateway-test-mcp",
@@ -65,28 +66,20 @@ TOOL_SCHEMAS = {
                 "inputSchema": {
                     "type": "object",
                     "properties": {
-                        "name": {
-                            "type": "string",
-                            "description": "Name to greet (optional, defaults to 'World')"
-                        }
-                    }
-                }
+                        "name": {"type": "string", "description": "Name to greet (optional, defaults to 'World')"}
+                    },
+                },
             },
             {
                 "name": "echo",
                 "description": "Echoes back the provided message. Use this to verify tool parameters are passed correctly.",
                 "inputSchema": {
                     "type": "object",
-                    "properties": {
-                        "message": {
-                            "type": "string",
-                            "description": "Message to echo back"
-                        }
-                    },
-                    "required": ["message"]
-                }
-            }
-        ]
+                    "properties": {"message": {"type": "string", "description": "Message to echo back"}},
+                    "required": ["message"],
+                },
+            },
+        ],
     },
     "cost-explorer-mcp": {
         "lambda_arn": f"arn:aws:lambda:{AWS_REGION}:{ACCOUNT_ID}:function:aiops-mcp-gateway-cost-explorer-mcp",
@@ -95,10 +88,7 @@ TOOL_SCHEMAS = {
             {
                 "name": "get_today_date",
                 "description": "Get the current date for determining relevant time periods. Returns today's date, first of month, and last month's date range.",
-                "inputSchema": {
-                    "type": "object",
-                    "properties": {}
-                }
+                "inputSchema": {"type": "object", "properties": {}},
             },
             {
                 "name": "get_dimension_values",
@@ -108,18 +98,12 @@ TOOL_SCHEMAS = {
                     "properties": {
                         "dimension": {
                             "type": "string",
-                            "description": "Dimension name: SERVICE, REGION, LINKED_ACCOUNT, USAGE_TYPE, INSTANCE_TYPE, etc."
+                            "description": "Dimension name: SERVICE, REGION, LINKED_ACCOUNT, USAGE_TYPE, INSTANCE_TYPE, etc.",
                         },
-                        "start_date": {
-                            "type": "string",
-                            "description": "Start date (YYYY-MM-DD format)"
-                        },
-                        "end_date": {
-                            "type": "string",
-                            "description": "End date (YYYY-MM-DD format)"
-                        }
-                    }
-                }
+                        "start_date": {"type": "string", "description": "Start date (YYYY-MM-DD format)"},
+                        "end_date": {"type": "string", "description": "End date (YYYY-MM-DD format)"},
+                    },
+                },
             },
             {
                 "name": "get_tag_values",
@@ -129,19 +113,13 @@ TOOL_SCHEMAS = {
                     "properties": {
                         "tag_key": {
                             "type": "string",
-                            "description": "The tag key to get values for (e.g., 'Environment', 'Project')"
+                            "description": "The tag key to get values for (e.g., 'Environment', 'Project')",
                         },
-                        "start_date": {
-                            "type": "string",
-                            "description": "Start date (YYYY-MM-DD format)"
-                        },
-                        "end_date": {
-                            "type": "string",
-                            "description": "End date (YYYY-MM-DD format)"
-                        }
+                        "start_date": {"type": "string", "description": "Start date (YYYY-MM-DD format)"},
+                        "end_date": {"type": "string", "description": "End date (YYYY-MM-DD format)"},
                     },
-                    "required": ["tag_key"]
-                }
+                    "required": ["tag_key"],
+                },
             },
             {
                 "name": "get_cost_and_usage",
@@ -151,32 +129,32 @@ TOOL_SCHEMAS = {
                     "properties": {
                         "start_date": {
                             "type": "string",
-                            "description": "Start date (YYYY-MM-DD format). Defaults to first of current month."
+                            "description": "Start date (YYYY-MM-DD format). Defaults to first of current month.",
                         },
                         "end_date": {
                             "type": "string",
-                            "description": "End date (YYYY-MM-DD format). Defaults to today."
+                            "description": "End date (YYYY-MM-DD format). Defaults to today.",
                         },
                         "granularity": {
                             "type": "string",
-                            "description": "Time granularity: DAILY, MONTHLY, or HOURLY"
+                            "description": "Time granularity: DAILY, MONTHLY, or HOURLY",
                         },
                         "metrics": {
                             "type": "array",
                             "items": {"type": "string"},
-                            "description": "Cost metrics to retrieve: UnblendedCost, BlendedCost, AmortizedCost, UsageQuantity, etc."
+                            "description": "Cost metrics to retrieve: UnblendedCost, BlendedCost, AmortizedCost, UsageQuantity, etc.",
                         },
                         "group_by": {
                             "type": "array",
                             "items": {"type": "string"},
-                            "description": "Dimensions to group by: SERVICE, REGION, LINKED_ACCOUNT, USAGE_TYPE, etc."
+                            "description": "Dimensions to group by: SERVICE, REGION, LINKED_ACCOUNT, USAGE_TYPE, etc.",
                         },
                         "filter": {
                             "type": "object",
-                            "description": "Cost Explorer filter expression (Dimensions, Tags, CostCategories)"
-                        }
-                    }
-                }
+                            "description": "Cost Explorer filter expression (Dimensions, Tags, CostCategories)",
+                        },
+                    },
+                },
             },
             {
                 "name": "get_cost_and_usage_comparisons",
@@ -184,37 +162,22 @@ TOOL_SCHEMAS = {
                 "inputSchema": {
                     "type": "object",
                     "properties": {
-                        "current_start": {
-                            "type": "string",
-                            "description": "Current period start date (YYYY-MM-DD)"
-                        },
-                        "current_end": {
-                            "type": "string",
-                            "description": "Current period end date (YYYY-MM-DD)"
-                        },
-                        "previous_start": {
-                            "type": "string",
-                            "description": "Previous period start date (YYYY-MM-DD)"
-                        },
-                        "previous_end": {
-                            "type": "string",
-                            "description": "Previous period end date (YYYY-MM-DD)"
-                        },
-                        "granularity": {
-                            "type": "string",
-                            "description": "Time granularity: DAILY or MONTHLY"
-                        },
+                        "current_start": {"type": "string", "description": "Current period start date (YYYY-MM-DD)"},
+                        "current_end": {"type": "string", "description": "Current period end date (YYYY-MM-DD)"},
+                        "previous_start": {"type": "string", "description": "Previous period start date (YYYY-MM-DD)"},
+                        "previous_end": {"type": "string", "description": "Previous period end date (YYYY-MM-DD)"},
+                        "granularity": {"type": "string", "description": "Time granularity: DAILY or MONTHLY"},
                         "metrics": {
                             "type": "array",
                             "items": {"type": "string"},
-                            "description": "Cost metrics to compare"
+                            "description": "Cost metrics to compare",
                         },
                         "group_by": {
                             "type": "string",
-                            "description": "Dimension to group by: SERVICE, REGION, LINKED_ACCOUNT, etc."
-                        }
-                    }
-                }
+                            "description": "Dimension to group by: SERVICE, REGION, LINKED_ACCOUNT, etc.",
+                        },
+                    },
+                },
             },
             {
                 "name": "get_cost_forecast",
@@ -224,24 +187,18 @@ TOOL_SCHEMAS = {
                     "properties": {
                         "start_date": {
                             "type": "string",
-                            "description": "Forecast start date (YYYY-MM-DD). Must be in the future."
+                            "description": "Forecast start date (YYYY-MM-DD). Must be in the future.",
                         },
-                        "end_date": {
-                            "type": "string",
-                            "description": "Forecast end date (YYYY-MM-DD)"
-                        },
-                        "granularity": {
-                            "type": "string",
-                            "description": "Forecast granularity: DAILY or MONTHLY"
-                        },
+                        "end_date": {"type": "string", "description": "Forecast end date (YYYY-MM-DD)"},
+                        "granularity": {"type": "string", "description": "Forecast granularity: DAILY or MONTHLY"},
                         "metric": {
                             "type": "string",
-                            "description": "Metric to forecast: UNBLENDED_COST, BLENDED_COST, AMORTIZED_COST, etc."
-                        }
-                    }
-                }
-            }
-        ]
+                            "description": "Metric to forecast: UNBLENDED_COST, BLENDED_COST, AMORTIZED_COST, etc.",
+                        },
+                    },
+                },
+            },
+        ],
     },
     "athena-mcp": {
         "lambda_arn": f"arn:aws:lambda:{AWS_REGION}:{ACCOUNT_ID}:function:aiops-mcp-gateway-athena-mcp",
@@ -253,29 +210,17 @@ TOOL_SCHEMAS = {
                 "inputSchema": {
                     "type": "object",
                     "properties": {
-                        "query_string": {
-                            "type": "string",
-                            "description": "The SQL query to execute (required)"
-                        },
-                        "database": {
-                            "type": "string",
-                            "description": "Database name to query against"
-                        },
-                        "catalog": {
-                            "type": "string",
-                            "description": "Data catalog name (default: AwsDataCatalog)"
-                        },
-                        "workgroup": {
-                            "type": "string",
-                            "description": "Athena workgroup to use (default: primary)"
-                        },
+                        "query_string": {"type": "string", "description": "The SQL query to execute (required)"},
+                        "database": {"type": "string", "description": "Database name to query against"},
+                        "catalog": {"type": "string", "description": "Data catalog name (default: AwsDataCatalog)"},
+                        "workgroup": {"type": "string", "description": "Athena workgroup to use (default: primary)"},
                         "output_location": {
                             "type": "string",
-                            "description": "S3 location for query results (e.g., s3://bucket/path/)"
-                        }
+                            "description": "S3 location for query results (e.g., s3://bucket/path/)",
+                        },
                     },
-                    "required": ["query_string"]
-                }
+                    "required": ["query_string"],
+                },
             },
             {
                 "name": "get_query_execution",
@@ -285,11 +230,11 @@ TOOL_SCHEMAS = {
                     "properties": {
                         "query_execution_id": {
                             "type": "string",
-                            "description": "The unique ID of the query execution (required)"
+                            "description": "The unique ID of the query execution (required)",
                         }
                     },
-                    "required": ["query_execution_id"]
-                }
+                    "required": ["query_execution_id"],
+                },
             },
             {
                 "name": "get_query_results",
@@ -299,19 +244,16 @@ TOOL_SCHEMAS = {
                     "properties": {
                         "query_execution_id": {
                             "type": "string",
-                            "description": "The unique ID of the query execution (required)"
+                            "description": "The unique ID of the query execution (required)",
                         },
                         "max_results": {
                             "type": "integer",
-                            "description": "Maximum number of results to return (default: 100, max: 1000)"
+                            "description": "Maximum number of results to return (default: 100, max: 1000)",
                         },
-                        "next_token": {
-                            "type": "string",
-                            "description": "Token for pagination to get more results"
-                        }
+                        "next_token": {"type": "string", "description": "Token for pagination to get more results"},
                     },
-                    "required": ["query_execution_id"]
-                }
+                    "required": ["query_execution_id"],
+                },
             },
             {
                 "name": "list_query_executions",
@@ -321,18 +263,15 @@ TOOL_SCHEMAS = {
                     "properties": {
                         "workgroup": {
                             "type": "string",
-                            "description": "Athena workgroup to list queries from (default: primary)"
+                            "description": "Athena workgroup to list queries from (default: primary)",
                         },
                         "max_results": {
                             "type": "integer",
-                            "description": "Maximum number of results (default: 50, max: 50)"
+                            "description": "Maximum number of results (default: 50, max: 50)",
                         },
-                        "next_token": {
-                            "type": "string",
-                            "description": "Token for pagination"
-                        }
-                    }
-                }
+                        "next_token": {"type": "string", "description": "Token for pagination"},
+                    },
+                },
             },
             {
                 "name": "list_databases",
@@ -340,20 +279,11 @@ TOOL_SCHEMAS = {
                 "inputSchema": {
                     "type": "object",
                     "properties": {
-                        "catalog": {
-                            "type": "string",
-                            "description": "Data catalog name (default: AwsDataCatalog)"
-                        },
-                        "max_results": {
-                            "type": "integer",
-                            "description": "Maximum number of results (default: 50)"
-                        },
-                        "next_token": {
-                            "type": "string",
-                            "description": "Token for pagination"
-                        }
-                    }
-                }
+                        "catalog": {"type": "string", "description": "Data catalog name (default: AwsDataCatalog)"},
+                        "max_results": {"type": "integer", "description": "Maximum number of results (default: 50)"},
+                        "next_token": {"type": "string", "description": "Token for pagination"},
+                    },
+                },
             },
             {
                 "name": "list_tables",
@@ -361,25 +291,13 @@ TOOL_SCHEMAS = {
                 "inputSchema": {
                     "type": "object",
                     "properties": {
-                        "database": {
-                            "type": "string",
-                            "description": "Database name (required)"
-                        },
-                        "catalog": {
-                            "type": "string",
-                            "description": "Data catalog name (default: AwsDataCatalog)"
-                        },
-                        "max_results": {
-                            "type": "integer",
-                            "description": "Maximum number of results (default: 50)"
-                        },
-                        "next_token": {
-                            "type": "string",
-                            "description": "Token for pagination"
-                        }
+                        "database": {"type": "string", "description": "Database name (required)"},
+                        "catalog": {"type": "string", "description": "Data catalog name (default: AwsDataCatalog)"},
+                        "max_results": {"type": "integer", "description": "Maximum number of results (default: 50)"},
+                        "next_token": {"type": "string", "description": "Token for pagination"},
                     },
-                    "required": ["database"]
-                }
+                    "required": ["database"],
+                },
             },
             {
                 "name": "get_table_metadata",
@@ -387,21 +305,12 @@ TOOL_SCHEMAS = {
                 "inputSchema": {
                     "type": "object",
                     "properties": {
-                        "database": {
-                            "type": "string",
-                            "description": "Database name (required)"
-                        },
-                        "table": {
-                            "type": "string",
-                            "description": "Table name (required)"
-                        },
-                        "catalog": {
-                            "type": "string",
-                            "description": "Data catalog name (default: AwsDataCatalog)"
-                        }
+                        "database": {"type": "string", "description": "Database name (required)"},
+                        "table": {"type": "string", "description": "Table name (required)"},
+                        "catalog": {"type": "string", "description": "Data catalog name (default: AwsDataCatalog)"},
                     },
-                    "required": ["database", "table"]
-                }
+                    "required": ["database", "table"],
+                },
             },
             {
                 "name": "stop_query_execution",
@@ -411,13 +320,13 @@ TOOL_SCHEMAS = {
                     "properties": {
                         "query_execution_id": {
                             "type": "string",
-                            "description": "The unique ID of the query execution to stop (required)"
+                            "description": "The unique ID of the query execution to stop (required)",
                         }
                     },
-                    "required": ["query_execution_id"]
-                }
-            }
-        ]
+                    "required": ["query_execution_id"],
+                },
+            },
+        ],
     },
     "cur-analyst-mcp": {
         "lambda_arn": f"arn:aws:lambda:{AWS_REGION}:{ACCOUNT_ID}:function:aiops-mcp-gateway-cur-analyst-mcp",
@@ -431,17 +340,17 @@ TOOL_SCHEMAS = {
                     "properties": {
                         "report_month": {
                             "type": "string",
-                            "description": "Report month in YYYY-MM format. Defaults to current month."
+                            "description": "Report month in YYYY-MM format. Defaults to current month.",
                         },
                         "compare_month": {
                             "type": "string",
-                            "description": "Comparison month in YYYY-MM format. Defaults to previous month."
-                        }
-                    }
-                }
+                            "description": "Comparison month in YYYY-MM format. Defaults to previous month.",
+                        },
+                    },
+                },
             }
-        ]
-    }
+        ],
+    },
 }
 
 
@@ -466,19 +375,10 @@ def update_target_tool_schemas(client, gateway_id: str, target_name: str, config
 
     # Build the target configuration with all tools
     lambda_target_config = {
-        "mcp": {
-            "lambda": {
-                "lambdaArn": config["lambda_arn"],
-                "toolSchema": {
-                    "inlinePayload": config["tools"]
-                }
-            }
-        }
+        "mcp": {"lambda": {"lambdaArn": config["lambda_arn"], "toolSchema": {"inlinePayload": config["tools"]}}}
     }
 
-    credential_config = [
-        {"credentialProviderType": "GATEWAY_IAM_ROLE"}
-    ]
+    credential_config = [{"credentialProviderType": "GATEWAY_IAM_ROLE"}]
 
     try:
         client.update_gateway_target(
@@ -487,9 +387,9 @@ def update_target_tool_schemas(client, gateway_id: str, target_name: str, config
             name=target_name,
             description=config["description"],
             targetConfiguration=lambda_target_config,
-            credentialProviderConfigurations=credential_config
+            credentialProviderConfigurations=credential_config,
         )
-        print(f"  Updated successfully!")
+        print("  Updated successfully!")
         return True
     except Exception as e:
         print(f"  Error: {e}")

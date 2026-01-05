@@ -15,6 +15,7 @@ This script tests:
 import sys
 from pathlib import Path
 
+
 # Add Lambda source to path
 LAMBDA_DIR = Path(__file__).parent.parent / "src" / "lambda" / "mcp_servers" / "cur_analyst"
 sys.path.insert(0, str(LAMBDA_DIR))
@@ -37,6 +38,7 @@ def test_imports():
     except Exception as e:
         print(f"Import error: {e}")
         import traceback
+
         traceback.print_exc()
         return False
 
@@ -57,6 +59,7 @@ def test_agent_initialization():
     except Exception as e:
         print(f"Agent initialization error: {e}")
         import traceback
+
         traceback.print_exc()
         return False
 
@@ -111,13 +114,14 @@ def test_full_workflow(report_month: str, compare_month: str, dry_run: bool = Tr
 
         print("-" * 40)
         print(f"Agent completed with stop_reason: {response.stop_reason}")
-        print(f"\nResponse summary:")
+        print("\nResponse summary:")
         print(str(response)[:500] + "..." if len(str(response)) > 500 else str(response))
 
         return True
     except Exception as e:
         print(f"Workflow error: {e}")
         import traceback
+
         traceback.print_exc()
         return False
 
@@ -151,11 +155,9 @@ def main():
     results.append(("Tool Definitions", test_tool_definitions()))
 
     # Test 4: Full workflow (optional)
-    results.append(("Full Workflow", test_full_workflow(
-        args.report_month,
-        args.compare_month,
-        dry_run=not args.execute
-    )))
+    results.append(
+        ("Full Workflow", test_full_workflow(args.report_month, args.compare_month, dry_run=not args.execute))
+    )
 
     # Summary
     print("\n" + "=" * 60)

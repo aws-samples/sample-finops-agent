@@ -51,6 +51,7 @@ Required IAM Permissions:
 """
 
 import json
+
 import boto3
 
 
@@ -85,10 +86,7 @@ def lambda_handler(event, context):
     if handler:
         return handler(event)
     else:
-        return {
-            "error": f"Unknown tool: {tool_name}",
-            "available_tools": list(handlers.keys())
-        }
+        return {"error": f"Unknown tool: {tool_name}", "available_tools": list(handlers.keys())}
 
 
 def handle_start_query_execution(event):
@@ -114,10 +112,7 @@ def handle_start_query_execution(event):
     athena = boto3.client("athena")
 
     try:
-        params = {
-            "QueryString": query_string,
-            "WorkGroup": workgroup
-        }
+        params = {"QueryString": query_string, "WorkGroup": workgroup}
 
         # Build QueryExecutionContext
         query_context = {}
@@ -130,9 +125,7 @@ def handle_start_query_execution(event):
 
         # Add output location if specified
         if output_location:
-            params["ResultConfiguration"] = {
-                "OutputLocation": output_location
-            }
+            params["ResultConfiguration"] = {"OutputLocation": output_location}
 
         response = athena.start_query_execution(**params)
 
@@ -141,7 +134,7 @@ def handle_start_query_execution(event):
         return {
             "query_execution_id": query_execution_id,
             "status": "QUEUED",
-            "message": f"Query started. Use get_query_execution with query_execution_id '{query_execution_id}' to check status."
+            "message": f"Query started. Use get_query_execution with query_execution_id '{query_execution_id}' to check status.",
         }
     except Exception as e:
         return {"error": str(e)}
@@ -162,9 +155,7 @@ def handle_get_query_execution(event):
     athena = boto3.client("athena")
 
     try:
-        response = athena.get_query_execution(
-            QueryExecutionId=query_execution_id
-        )
+        response = athena.get_query_execution(QueryExecutionId=query_execution_id)
 
         execution = response["QueryExecution"]
         status = execution["Status"]
@@ -188,7 +179,7 @@ def handle_get_query_execution(event):
                 "data_scanned_bytes": stats.get("DataScannedInBytes"),
                 "total_execution_time_ms": stats.get("TotalExecutionTimeInMillis"),
                 "query_queue_time_ms": stats.get("QueryQueueTimeInMillis"),
-                "service_processing_time_ms": stats.get("ServiceProcessingTimeInMillis")
+                "service_processing_time_ms": stats.get("ServiceProcessingTimeInMillis"),
             }
 
         # Add error info if failed
@@ -224,22 +215,20 @@ def handle_get_query_results(event):
 
     try:
         # First check if query is complete
-        exec_response = athena.get_query_execution(
-            QueryExecutionId=query_execution_id
-        )
+        exec_response = athena.get_query_execution(QueryExecutionId=query_execution_id)
         status = exec_response["QueryExecution"]["Status"]["State"]
 
         if status != "SUCCEEDED":
             return {
                 "error": f"Query is not complete. Current status: {status}",
                 "query_execution_id": query_execution_id,
-                "status": status
+                "status": status,
             }
 
         # Get results
         params = {
             "QueryExecutionId": query_execution_id,
-            "MaxResults": min(max_results, 1000)  # Athena max is 1000
+            "MaxResults": min(max_results, 1000),  # Athena max is 1000
         }
 
         if next_token:
@@ -255,10 +244,7 @@ def handle_get_query_results(event):
         # Get column info
         if "ResultSetMetadata" in result_set:
             columns = [
-                {
-                    "name": col.get("Name"),
-                    "type": col.get("Type")
-                }
+                {"name": col.get("Name"), "type": col.get("Type")}
                 for col in result_set["ResultSetMetadata"].get("ColumnInfo", [])
             ]
 
@@ -278,7 +264,7 @@ def handle_get_query_results(event):
             "columns": columns,
             "rows": rows,
             "row_count": len(rows),
-            "next_token": response.get("NextToken")
+            "next_token": response.get("NextToken"),
         }
     except Exception as e:
         return {"error": str(e), "query_execution_id": query_execution_id}
@@ -302,7 +288,7 @@ def handle_list_query_executions(event):
     try:
         params = {
             "WorkGroup": workgroup,
-            "MaxResults": min(max_results, 50)  # Athena max is 50
+            "MaxResults": min(max_results, 50),  # Athena max is 50
         }
 
         if next_token:
@@ -315,26 +301,28 @@ def handle_list_query_executions(event):
         # Get details for each query
         executions = []
         if query_ids:
-            batch_response = athena.batch_get_query_execution(
-                QueryExecutionIds=query_ids
-            )
+            batch_response = athena.batch_get_query_execution(QueryExecutionIds=query_ids)
 
             for execution in batch_response.get("QueryExecutions", []):
                 status = execution.get("Status", {})
-                executions.append({
-                    "query_execution_id": execution.get("QueryExecutionId"),
-                    "status": status.get("State"),
-                    "query": execution.get("Query", "")[:200] + "..." if len(execution.get("Query", "")) > 200 else execution.get("Query", ""),
-                    "database": execution.get("QueryExecutionContext", {}).get("Database"),
-                    "submission_time": str(status.get("SubmissionDateTime", "")),
-                    "workgroup": execution.get("WorkGroup")
-                })
+                executions.append(
+                    {
+                        "query_execution_id": execution.get("QueryExecutionId"),
+                        "status": status.get("State"),
+                        "query": execution.get("Query", "")[:200] + "..."
+                        if len(execution.get("Query", "")) > 200
+                        else execution.get("Query", ""),
+                        "database": execution.get("QueryExecutionContext", {}).get("Database"),
+                        "submission_time": str(status.get("SubmissionDateTime", "")),
+                        "workgroup": execution.get("WorkGroup"),
+                    }
+                )
 
         return {
             "workgroup": workgroup,
             "executions": executions,
             "count": len(executions),
-            "next_token": response.get("NextToken")
+            "next_token": response.get("NextToken"),
         }
     except Exception as e:
         return {"error": str(e)}
@@ -356,10 +344,7 @@ def handle_list_databases(event):
     athena = boto3.client("athena")
 
     try:
-        params = {
-            "CatalogName": catalog,
-            "MaxResults": min(max_results, 50)
-        }
+        params = {"CatalogName": catalog, "MaxResults": min(max_results, 50)}
 
         if next_token:
             params["NextToken"] = next_token
@@ -367,11 +352,7 @@ def handle_list_databases(event):
         response = athena.list_databases(**params)
 
         databases = [
-            {
-                "name": db.get("Name"),
-                "description": db.get("Description", ""),
-                "parameters": db.get("Parameters", {})
-            }
+            {"name": db.get("Name"), "description": db.get("Description", ""), "parameters": db.get("Parameters", {})}
             for db in response.get("DatabaseList", [])
         ]
 
@@ -379,7 +360,7 @@ def handle_list_databases(event):
             "catalog": catalog,
             "databases": databases,
             "count": len(databases),
-            "next_token": response.get("NextToken")
+            "next_token": response.get("NextToken"),
         }
     except Exception as e:
         return {"error": str(e), "catalog": catalog}
@@ -406,11 +387,7 @@ def handle_list_tables(event):
     athena = boto3.client("athena")
 
     try:
-        params = {
-            "CatalogName": catalog,
-            "DatabaseName": database,
-            "MaxResults": min(max_results, 50)
-        }
+        params = {"CatalogName": catalog, "DatabaseName": database, "MaxResults": min(max_results, 50)}
 
         if next_token:
             params["NextToken"] = next_token
@@ -421,15 +398,11 @@ def handle_list_tables(event):
             {
                 "name": table.get("Name"),
                 "type": table.get("TableType"),
-                "columns": [
-                    {"name": col.get("Name"), "type": col.get("Type")}
-                    for col in table.get("Columns", [])
-                ],
+                "columns": [{"name": col.get("Name"), "type": col.get("Type")} for col in table.get("Columns", [])],
                 "partition_keys": [
-                    {"name": pk.get("Name"), "type": pk.get("Type")}
-                    for pk in table.get("PartitionKeys", [])
+                    {"name": pk.get("Name"), "type": pk.get("Type")} for pk in table.get("PartitionKeys", [])
                 ],
-                "create_time": str(table.get("CreateTime", ""))
+                "create_time": str(table.get("CreateTime", "")),
             }
             for table in response.get("TableMetadataList", [])
         ]
@@ -439,7 +412,7 @@ def handle_list_tables(event):
             "database": database,
             "tables": tables,
             "count": len(tables),
-            "next_token": response.get("NextToken")
+            "next_token": response.get("NextToken"),
         }
     except Exception as e:
         return {"error": str(e), "database": database}
@@ -466,11 +439,7 @@ def handle_get_table_metadata(event):
     athena = boto3.client("athena")
 
     try:
-        response = athena.get_table_metadata(
-            CatalogName=catalog,
-            DatabaseName=database,
-            TableName=table
-        )
+        response = athena.get_table_metadata(CatalogName=catalog, DatabaseName=database, TableName=table)
 
         table_meta = response.get("TableMetadata", {})
 
@@ -481,23 +450,15 @@ def handle_get_table_metadata(event):
             "name": table_meta.get("Name"),
             "type": table_meta.get("TableType"),
             "columns": [
-                {
-                    "name": col.get("Name"),
-                    "type": col.get("Type"),
-                    "comment": col.get("Comment", "")
-                }
+                {"name": col.get("Name"), "type": col.get("Type"), "comment": col.get("Comment", "")}
                 for col in table_meta.get("Columns", [])
             ],
             "partition_keys": [
-                {
-                    "name": pk.get("Name"),
-                    "type": pk.get("Type"),
-                    "comment": pk.get("Comment", "")
-                }
+                {"name": pk.get("Name"), "type": pk.get("Type"), "comment": pk.get("Comment", "")}
                 for pk in table_meta.get("PartitionKeys", [])
             ],
             "parameters": table_meta.get("Parameters", {}),
-            "create_time": str(table_meta.get("CreateTime", ""))
+            "create_time": str(table_meta.get("CreateTime", "")),
         }
     except Exception as e:
         return {"error": str(e), "database": database, "table": table}
@@ -518,14 +479,12 @@ def handle_stop_query_execution(event):
     athena = boto3.client("athena")
 
     try:
-        athena.stop_query_execution(
-            QueryExecutionId=query_execution_id
-        )
+        athena.stop_query_execution(QueryExecutionId=query_execution_id)
 
         return {
             "query_execution_id": query_execution_id,
             "status": "CANCELLED",
-            "message": "Query execution stop request submitted successfully"
+            "message": "Query execution stop request submitted successfully",
         }
     except Exception as e:
         return {"error": str(e), "query_execution_id": query_execution_id}

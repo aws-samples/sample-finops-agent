@@ -4,9 +4,11 @@ Script to invoke the aiops-mcp-gateway-proxy Lambda function.
 Usage: python invoke_lambda.py
 """
 
-import boto3
 import json
 import os
+
+import boto3
+
 
 LAMBDA_FUNCTION_NAME = "aiops-mcp-gateway-proxy"
 AWS_REGION = "us-east-1"

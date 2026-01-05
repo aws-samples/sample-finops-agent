@@ -18,7 +18,7 @@ AWS_REGION  ?= us-east-1
 # Common terraform command with AWS credentials (runs in terraform/ directory)
 TF := AWS_PROFILE=$(AWS_PROFILE) AWS_REGION=$(AWS_REGION) terraform -chdir=$(TF_DIR)
 
-.PHONY: help setup init plan apply apply-auto destroy output fmt validate lint-init lint check clean deploy update-schemas test-lambdas
+.PHONY: help setup init plan apply apply-auto destroy output fmt validate lint-init lint ruff-check ruff-format ruff-fix check clean deploy update-schemas test-lambdas
 
 help: ## Show this help
 	@echo "AIOps MCP Gateway Proxy - Terraform Commands"
@@ -88,7 +88,18 @@ lint: ## Run tflint (install: brew install tflint)
 	tflint --config $(CURDIR)/$(TF_DIR)/config/.tflint.hcl --chdir $(TF_DIR)/modules/agentcore-gateway
 	tflint --config $(CURDIR)/$(TF_DIR)/config/.tflint.hcl --chdir $(TF_DIR)/modules/lambda-proxy
 
-check: fmt validate lint ## Run all checks (fmt, validate, lint)
+# Python linting with ruff (via uv)
+ruff-check: ## Check Python code with ruff
+	uv run ruff check src/ scripts/
+
+ruff-format: ## Format Python code with ruff
+	uv run ruff format src/ scripts/
+
+ruff-fix: ## Fix Python code with ruff (check + format)
+	uv run ruff check --fix src/ scripts/
+	uv run ruff format src/ scripts/
+
+check: fmt validate lint ruff-check ## Run all checks (terraform + ruff)
 	@echo "All checks passed!"
 
 clean: ## Remove local Terraform files (keeps config)

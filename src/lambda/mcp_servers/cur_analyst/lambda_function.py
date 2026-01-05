@@ -27,21 +27,23 @@ Required IAM Permissions:
 - glue:GetDatabase, GetTable, GetPartitions
 """
 
-import boto3
-import time
 import json
+import time
+
+import boto3
+
 
 # Configuration
 CUR_CONFIG = {
     "database": "cur_database",
     "table": "mycostexport",
     "output_location": "s3://my-cur-cost-export/athena-results/",
-    "region": "us-east-1"
+    "region": "us-east-1",
 }
 
 # Historical Queries (5)
 HISTORICAL_QUERIES = {
-    "monthly_totals": '''
+    "monthly_totals": """
         SELECT billing_period, linked_account_id, linked_account_name,
                ROUND(SUM(CAST(unblended_cost AS DOUBLE)), 2) as total_unblended,
                ROUND(SUM(CAST(amortized_cost AS DOUBLE)), 2) as total_amortized,
@@ -50,8 +52,8 @@ HISTORICAL_QUERIES = {
         WHERE billing_period LIKE '{report_month}%' OR billing_period LIKE '{compare_month}%'
         GROUP BY billing_period, linked_account_id, linked_account_name
         ORDER BY billing_period DESC, total_unblended DESC
-    ''',
-    "service_by_account": '''
+    """,
+    "service_by_account": """
         SELECT linked_account_name, service,
                ROUND(SUM(CASE WHEN billing_period LIKE '{report_month}%' THEN CAST(unblended_cost AS DOUBLE) ELSE 0 END), 2) as current_cost,
                ROUND(SUM(CASE WHEN billing_period LIKE '{compare_month}%' THEN CAST(unblended_cost AS DOUBLE) ELSE 0 END), 2) as previous_cost,
@@ -63,8 +65,8 @@ HISTORICAL_QUERIES = {
         HAVING SUM(CAST(unblended_cost AS DOUBLE)) > 0.01
         ORDER BY current_cost DESC
         LIMIT 50
-    ''',
-    "top_services": '''
+    """,
+    "top_services": """
         SELECT service, product_name,
                ROUND(SUM(CASE WHEN billing_period LIKE '{report_month}%' THEN CAST(unblended_cost AS DOUBLE) ELSE 0 END), 2) as current_cost,
                ROUND(SUM(CASE WHEN billing_period LIKE '{compare_month}%' THEN CAST(unblended_cost AS DOUBLE) ELSE 0 END), 2) as previous_cost
@@ -73,36 +75,36 @@ HISTORICAL_QUERIES = {
         GROUP BY service, product_name
         ORDER BY current_cost DESC
         LIMIT 20
-    ''',
-    "region_account": '''
+    """,
+    "region_account": """
         SELECT linked_account_name, region,
                ROUND(SUM(CAST(unblended_cost AS DOUBLE)), 2) as total_cost
         FROM cur_database.mycostexport
         WHERE billing_period LIKE '{report_month}%'
         GROUP BY linked_account_name, region
         ORDER BY total_cost DESC
-    ''',
-    "charge_type": '''
+    """,
+    "charge_type": """
         SELECT linked_account_name, charge_type, charge_category,
                ROUND(SUM(CAST(unblended_cost AS DOUBLE)), 2) as total_cost
         FROM cur_database.mycostexport
         WHERE billing_period LIKE '{report_month}%'
         GROUP BY linked_account_name, charge_type, charge_category
         ORDER BY total_cost DESC
-    '''
+    """,
 }
 
 # Detailed Queries (5)
 DETAILED_QUERIES = {
-    "daily_trend": '''
+    "daily_trend": """
         SELECT usage_date, linked_account_name,
                ROUND(SUM(CAST(unblended_cost AS DOUBLE)), 2) as daily_cost
         FROM cur_database.mycostexport
         WHERE billing_period LIKE '{report_month}%'
         GROUP BY usage_date, linked_account_name
         ORDER BY usage_date, linked_account_name
-    ''',
-    "usage_types": '''
+    """,
+    "usage_types": """
         SELECT linked_account_name, service, usage_type, operation, pricing_unit,
                ROUND(SUM(CAST(usage_quantity AS DOUBLE)), 4) as total_quantity,
                ROUND(SUM(CAST(unblended_cost AS DOUBLE)), 2) as total_cost
@@ -111,8 +113,8 @@ DETAILED_QUERIES = {
         GROUP BY linked_account_name, service, usage_type, operation, pricing_unit
         ORDER BY total_cost DESC
         LIMIT 50
-    ''',
-    "purchase_option": '''
+    """,
+    "purchase_option": """
         SELECT linked_account_name, purchase_option,
                ROUND(SUM(CAST(unblended_cost AS DOUBLE)), 2) as unblended_cost,
                ROUND(SUM(CAST(amortized_cost AS DOUBLE)), 2) as amortized_cost,
@@ -121,8 +123,8 @@ DETAILED_QUERIES = {
         WHERE billing_period LIKE '{report_month}%'
         GROUP BY linked_account_name, purchase_option
         ORDER BY unblended_cost DESC
-    ''',
-    "ri_sp_savings": '''
+    """,
+    "ri_sp_savings": """
         SELECT linked_account_name, service,
                ROUND(SUM(CAST(ri_sp_trueup AS DOUBLE)), 2) as ri_sp_trueup,
                ROUND(SUM(CAST(ri_sp_upfront_fees AS DOUBLE)), 2) as upfront_fees,
@@ -132,8 +134,8 @@ DETAILED_QUERIES = {
         GROUP BY linked_account_name, service
         HAVING SUM(CAST(unblended_cost AS DOUBLE)) > 0
         ORDER BY estimated_savings DESC
-    ''',
-    "instance_type": '''
+    """,
+    "instance_type": """
         SELECT linked_account_name, service, instance_type_family, instance_type, platform, tenancy,
                ROUND(SUM(CAST(unblended_cost AS DOUBLE)), 2) as total_cost,
                ROUND(SUM(CAST(usage_quantity AS DOUBLE)), 2) as total_hours
@@ -142,7 +144,7 @@ DETAILED_QUERIES = {
         GROUP BY linked_account_name, service, instance_type_family, instance_type, platform, tenancy
         ORDER BY total_cost DESC
         LIMIT 30
-    '''
+    """,
 }
 
 
@@ -156,22 +158,22 @@ def submit_historical_queries(report_month: str, compare_month: str) -> dict:
     Returns:
         Dictionary with query execution IDs
     """
-    athena = boto3.client('athena', region_name=CUR_CONFIG['region'])
+    athena = boto3.client("athena", region_name=CUR_CONFIG["region"])
     query_ids = {}
 
     for name, query_template in HISTORICAL_QUERIES.items():
         query = query_template.format(report_month=report_month, compare_month=compare_month)
         response = athena.start_query_execution(
             QueryString=query,
-            QueryExecutionContext={'Database': CUR_CONFIG['database']},
-            ResultConfiguration={'OutputLocation': CUR_CONFIG['output_location']}
+            QueryExecutionContext={"Database": CUR_CONFIG["database"]},
+            ResultConfiguration={"OutputLocation": CUR_CONFIG["output_location"]},
         )
-        query_ids[name] = response['QueryExecutionId']
+        query_ids[name] = response["QueryExecutionId"]
 
     return {
         "status": "success",
         "content": [{"text": f"Submitted 5 historical queries. IDs: {json.dumps(query_ids)}"}],
-        "query_ids": query_ids
+        "query_ids": query_ids,
     }
 
 
@@ -185,22 +187,22 @@ def submit_detailed_queries(report_month: str, compare_month: str) -> dict:
     Returns:
         Dictionary with query execution IDs
     """
-    athena = boto3.client('athena', region_name=CUR_CONFIG['region'])
+    athena = boto3.client("athena", region_name=CUR_CONFIG["region"])
     query_ids = {}
 
     for name, query_template in DETAILED_QUERIES.items():
         query = query_template.format(report_month=report_month, compare_month=compare_month)
         response = athena.start_query_execution(
             QueryString=query,
-            QueryExecutionContext={'Database': CUR_CONFIG['database']},
-            ResultConfiguration={'OutputLocation': CUR_CONFIG['output_location']}
+            QueryExecutionContext={"Database": CUR_CONFIG["database"]},
+            ResultConfiguration={"OutputLocation": CUR_CONFIG["output_location"]},
         )
-        query_ids[name] = response['QueryExecutionId']
+        query_ids[name] = response["QueryExecutionId"]
 
     return {
         "status": "success",
         "content": [{"text": f"Submitted 5 detailed queries. IDs: {json.dumps(query_ids)}"}],
-        "query_ids": query_ids
+        "query_ids": query_ids,
     }
 
 
@@ -214,7 +216,7 @@ def retrieve_all_results(historical_ids: dict, detailed_ids: dict) -> dict:
     Returns:
         Dictionary with all query results
     """
-    athena = boto3.client('athena', region_name=CUR_CONFIG['region'])
+    athena = boto3.client("athena", region_name=CUR_CONFIG["region"])
     results = {}
 
     all_ids = {**historical_ids, **detailed_ids}
@@ -224,23 +226,23 @@ def retrieve_all_results(historical_ids: dict, detailed_ids: dict) -> dict:
         # Poll for completion
         for _ in range(60):  # Max 5 min wait
             status = athena.get_query_execution(QueryExecutionId=query_id)
-            state = status['QueryExecution']['Status']['State']
-            if state == 'SUCCEEDED':
+            state = status["QueryExecution"]["Status"]["State"]
+            if state == "SUCCEEDED":
                 break
-            elif state in ['FAILED', 'CANCELLED']:
-                error_reason = status['QueryExecution']['Status'].get('StateChangeReason', 'Unknown')
-                results[name] = {'error': state, 'reason': error_reason}
+            elif state in ["FAILED", "CANCELLED"]:
+                error_reason = status["QueryExecution"]["Status"].get("StateChangeReason", "Unknown")
+                results[name] = {"error": state, "reason": error_reason}
                 break
             time.sleep(5)
 
-        if state == 'SUCCEEDED':
+        if state == "SUCCEEDED":
             result = athena.get_query_results(QueryExecutionId=query_id, MaxResults=500)
             results[name] = parse_athena_results(result)
 
     return {
         "status": "success",
         "content": [{"text": f"Retrieved results for {len(results)} queries"}],
-        "results": results
+        "results": results,
     }
 
 
@@ -259,7 +261,7 @@ def parse_athena_results(response: dict) -> list:
     data = []
     for row in rows[1:]:
         row_data = [col.get("VarCharValue", "") for col in row.get("Data", [])]
-        data.append(dict(zip(headers, row_data)))
+        data.append(dict(zip(headers, row_data, strict=False)))
 
     return data
 
@@ -280,7 +282,8 @@ def collect_cost_explorer_data() -> dict:
         Dictionary with all Cost Explorer results
     """
     from datetime import datetime, timedelta
-    ce = boto3.client('ce', region_name=CUR_CONFIG['region'])
+
+    ce = boto3.client("ce", region_name=CUR_CONFIG["region"])
 
     # Calculate date ranges
     today = datetime.now()
@@ -299,7 +302,7 @@ def collect_cost_explorer_data() -> dict:
             TimePeriod={"Start": six_months_ago, "End": report_end},
             Granularity="MONTHLY",
             Metrics=["UnblendedCost", "AmortizedCost"],
-            GroupBy=[{"Type": "DIMENSION", "Key": "LINKED_ACCOUNT"}]
+            GroupBy=[{"Type": "DIMENSION", "Key": "LINKED_ACCOUNT"}],
         ).get("ResultsByTime", [])
     except Exception as e:
         results["monthly_trend_by_account"] = {"error": str(e)}
@@ -310,7 +313,7 @@ def collect_cost_explorer_data() -> dict:
             TimePeriod={"Start": six_months_ago, "End": report_end},
             Granularity="MONTHLY",
             Metrics=["UnblendedCost"],
-            GroupBy=[{"Type": "DIMENSION", "Key": "SERVICE"}]
+            GroupBy=[{"Type": "DIMENSION", "Key": "SERVICE"}],
         ).get("ResultsByTime", [])
     except Exception as e:
         results["monthly_trend_by_service"] = {"error": str(e)}
@@ -322,7 +325,7 @@ def collect_cost_explorer_data() -> dict:
             TimePeriod={"Start": report_start, "End": report_end},
             Granularity="MONTHLY",
             Metrics=["UnblendedCost", "AmortizedCost"],
-            GroupBy=[{"Type": "DIMENSION", "Key": "LINKED_ACCOUNT"}]
+            GroupBy=[{"Type": "DIMENSION", "Key": "LINKED_ACCOUNT"}],
         ).get("ResultsByTime", [])
     except Exception as e:
         results["current_month_by_account"] = {"error": str(e)}
@@ -333,10 +336,7 @@ def collect_cost_explorer_data() -> dict:
             TimePeriod={"Start": report_start, "End": report_end},
             Granularity="MONTHLY",
             Metrics=["UnblendedCost"],
-            GroupBy=[
-                {"Type": "DIMENSION", "Key": "SERVICE"},
-                {"Type": "DIMENSION", "Key": "LINKED_ACCOUNT"}
-            ]
+            GroupBy=[{"Type": "DIMENSION", "Key": "SERVICE"}, {"Type": "DIMENSION", "Key": "LINKED_ACCOUNT"}],
         ).get("ResultsByTime", [])
     except Exception as e:
         results["current_month_by_service"] = {"error": str(e)}
@@ -347,20 +347,16 @@ def collect_cost_explorer_data() -> dict:
             TimePeriod={"Start": report_start, "End": report_end},
             Granularity="MONTHLY",
             Metrics=["UnblendedCost"],
-            GroupBy=[{"Type": "DIMENSION", "Key": "REGION"}]
+            GroupBy=[{"Type": "DIMENSION", "Key": "REGION"}],
         ).get("ResultsByTime", [])
     except Exception as e:
         results["current_month_by_region"] = {"error": str(e)}
 
     return {
         "status": "success",
-        "content": [{"text": f"Collected Cost Explorer data: 6-month trends + current month breakdown"}],
+        "content": [{"text": "Collected Cost Explorer data: 6-month trends + current month breakdown"}],
         "cost_explorer_data": results,
-        "date_range": {
-            "report_start": report_start,
-            "report_end": report_end,
-            "trend_start": six_months_ago
-        }
+        "date_range": {"report_start": report_start, "report_end": report_end, "trend_start": six_months_ago},
     }
 
 
@@ -378,7 +374,8 @@ def collect_savings_and_forecast() -> dict:
         Dictionary with savings and forecast data
     """
     from datetime import datetime, timedelta
-    ce = boto3.client('ce', region_name=CUR_CONFIG['region'])
+
+    ce = boto3.client("ce", region_name=CUR_CONFIG["region"])
 
     today = datetime.now()
     # End date is exclusive for Cost Explorer
@@ -392,8 +389,7 @@ def collect_savings_and_forecast() -> dict:
     # 1. Savings Plans Coverage (6 months, monthly)
     try:
         results["sp_coverage"] = ce.get_savings_plans_coverage(
-            TimePeriod={"Start": six_months_ago, "End": end_date},
-            Granularity="MONTHLY"
+            TimePeriod={"Start": six_months_ago, "End": end_date}, Granularity="MONTHLY"
         ).get("SavingsPlansCoverages", [])
     except Exception as e:
         results["sp_coverage"] = {"error": str(e)}
@@ -401,8 +397,7 @@ def collect_savings_and_forecast() -> dict:
     # 2. Savings Plans Utilization (6 months, monthly)
     try:
         results["sp_utilization"] = ce.get_savings_plans_utilization(
-            TimePeriod={"Start": six_months_ago, "End": end_date},
-            Granularity="MONTHLY"
+            TimePeriod={"Start": six_months_ago, "End": end_date}, Granularity="MONTHLY"
         ).get("SavingsPlansUtilizationsByTime", [])
     except Exception as e:
         results["sp_utilization"] = {"error": str(e)}
@@ -410,8 +405,7 @@ def collect_savings_and_forecast() -> dict:
     # 3. Reserved Instance Coverage (6 months, monthly)
     try:
         results["ri_coverage"] = ce.get_reservation_coverage(
-            TimePeriod={"Start": six_months_ago, "End": end_date},
-            Granularity="MONTHLY"
+            TimePeriod={"Start": six_months_ago, "End": end_date}, Granularity="MONTHLY"
         ).get("CoveragesByTime", [])
     except Exception as e:
         results["ri_coverage"] = {"error": str(e)}
@@ -419,8 +413,7 @@ def collect_savings_and_forecast() -> dict:
     # 4. Reserved Instance Utilization (6 months, monthly)
     try:
         results["ri_utilization"] = ce.get_reservation_utilization(
-            TimePeriod={"Start": six_months_ago, "End": end_date},
-            Granularity="MONTHLY"
+            TimePeriod={"Start": six_months_ago, "End": end_date}, Granularity="MONTHLY"
         ).get("UtilizationsByTime", [])
     except Exception as e:
         results["ri_utilization"] = {"error": str(e)}
@@ -428,9 +421,7 @@ def collect_savings_and_forecast() -> dict:
     # 5. Cost Forecast (requires 14+ days history)
     try:
         results["forecast"] = ce.get_cost_forecast(
-            TimePeriod={"Start": end_date, "End": next_month_start},
-            Metric="UNBLENDED_COST",
-            Granularity="MONTHLY"
+            TimePeriod={"Start": end_date, "End": next_month_start}, Metric="UNBLENDED_COST", Granularity="MONTHLY"
         )
     except Exception as e:
         error_msg = str(e)
@@ -443,13 +434,8 @@ def collect_savings_and_forecast() -> dict:
         "status": "success",
         "content": [{"text": "Collected 6-month savings plans, RI data, and forecast"}],
         "savings_data": results,
-        "date_range": {
-            "trend_start": six_months_ago,
-            "end_date": end_date
-        }
+        "date_range": {"trend_start": six_months_ago, "end_date": end_date},
     }
-
-
 
 
 def lambda_handler(event, context):
@@ -465,8 +451,8 @@ def lambda_handler(event, context):
 
     # Get tool name from Gateway context or event (for testing)
     tool_name = None
-    if context and hasattr(context, 'client_context') and context.client_context:
-        custom = getattr(context.client_context, 'custom', None)
+    if context and hasattr(context, "client_context") and context.client_context:
+        custom = getattr(context.client_context, "custom", None)
         if custom and "bedrockAgentCoreToolName" in custom:
             extended_tool_name = custom["bedrockAgentCoreToolName"]
             tool_name = extended_tool_name.split("___")[1]
@@ -485,10 +471,7 @@ def lambda_handler(event, context):
     if handler:
         return handler(event)
     else:
-        return {
-            "error": f"Unknown tool: {tool_name}",
-            "available_tools": list(handlers.keys())
-        }
+        return {"error": f"Unknown tool: {tool_name}", "available_tools": list(handlers.keys())}
 
 
 def handle_analyze_cur(event):
@@ -514,7 +497,7 @@ def handle_analyze_cur(event):
         "cost_explorer": None,
         "savings_forecast": None,
         "cur_data": None,
-        "errors": []
+        "errors": [],
     }
 
     # Phase 1: Cost Explorer API Data
@@ -524,7 +507,7 @@ def handle_analyze_cur(event):
         results["cost_explorer"] = ce_result.get("cost_explorer_data", {})
         results["cost_explorer_date_range"] = ce_result.get("date_range", {})
     except Exception as e:
-        results["errors"].append(f"cost_explorer: {str(e)}")
+        results["errors"].append(f"cost_explorer: {e!s}")
         print(f"Cost Explorer error: {e}")
 
     try:
@@ -532,7 +515,7 @@ def handle_analyze_cur(event):
         savings_result = collect_savings_and_forecast()
         results["savings_forecast"] = savings_result.get("savings_data", {})
     except Exception as e:
-        results["errors"].append(f"savings_forecast: {str(e)}")
+        results["errors"].append(f"savings_forecast: {e!s}")
         print(f"Savings/Forecast error: {e}")
 
     # Phase 2: CUR Athena Queries
@@ -549,7 +532,7 @@ def handle_analyze_cur(event):
         cur_results = retrieve_all_results(historical_ids, detailed_ids)
         results["cur_data"] = cur_results.get("results", {})
     except Exception as e:
-        results["errors"].append(f"cur_athena: {str(e)}")
+        results["errors"].append(f"cur_athena: {e!s}")
         print(f"CUR Athena error: {e}")
 
     # Remove errors key if empty
@@ -561,7 +544,7 @@ def handle_analyze_cur(event):
 
     # Log response size for debugging
     response_json = json.dumps(results)
-    print(f"Response size: {len(response_json)} bytes ({len(response_json)/1024:.1f} KB)")
+    print(f"Response size: {len(response_json)} bytes ({len(response_json) / 1024:.1f} KB)")
 
     return results
 
@@ -626,7 +609,7 @@ def aggregate_cost_explorer(ce_data):
 
             # Sort by first metric descending and limit
             if all_groups:
-                first_metric = [k for k in all_groups[0].keys() if k != "keys"][0]
+                first_metric = next(k for k in all_groups[0] if k != "keys")
                 all_groups.sort(key=lambda x: x.get(first_metric, 0), reverse=True)
             simplified[query_name] = all_groups[:30]
 
@@ -654,12 +637,14 @@ def aggregate_savings(savings_data):
                 period = item.get("TimePeriod", {})
                 month = period.get("Start", "")[:7]
                 coverage = item.get("Coverage", {}).get("CoverageHours", {})
-                monthly.append({
-                    "month": month,
-                    "coverage_percent": round(float(coverage.get("CoverageHoursPercentage", 0)), 2),
-                    "on_demand_hours": round(float(coverage.get("OnDemandHours", 0)), 2),
-                    "covered_hours": round(float(coverage.get("CoverageHours", 0)), 2)
-                })
+                monthly.append(
+                    {
+                        "month": month,
+                        "coverage_percent": round(float(coverage.get("CoverageHoursPercentage", 0)), 2),
+                        "on_demand_hours": round(float(coverage.get("OnDemandHours", 0)), 2),
+                        "covered_hours": round(float(coverage.get("CoverageHours", 0)), 2),
+                    }
+                )
             simplified[query_name] = monthly
         elif query_name in ["sp_utilization", "ri_utilization"]:
             monthly = []
@@ -667,12 +652,14 @@ def aggregate_savings(savings_data):
                 period = item.get("TimePeriod", {})
                 month = period.get("Start", "")[:7]
                 util = item.get("Utilization", {})
-                monthly.append({
-                    "month": month,
-                    "utilization_percent": round(float(util.get("UtilizationPercentage", 0)), 2),
-                    "used_commitment": round(float(util.get("UsedCommitment", 0)), 2),
-                    "unused_commitment": round(float(util.get("UnusedCommitment", 0)), 2)
-                })
+                monthly.append(
+                    {
+                        "month": month,
+                        "utilization_percent": round(float(util.get("UtilizationPercentage", 0)), 2),
+                        "used_commitment": round(float(util.get("UsedCommitment", 0)), 2),
+                        "unused_commitment": round(float(util.get("UnusedCommitment", 0)), 2),
+                    }
+                )
             simplified[query_name] = monthly
         else:
             simplified[query_name] = data

@@ -30,31 +30,17 @@ def lambda_handler(event, context):
 
     # Route to appropriate tool
     if tool_name == "hello":
-        name = event.get('name', 'World')
-        result = {
-            "message": f"Hello, {name}!",
-            "tool": "hello",
-            "gateway_integration": "working"
-        }
+        name = event.get("name", "World")
+        result = {"message": f"Hello, {name}!", "tool": "hello", "gateway_integration": "working"}
     elif tool_name == "echo":
-        message = event.get('message', '')
+        message = event.get("message", "")
         if not message:
-            return {
-                'statusCode': 400,
-                'body': json.dumps({"error": "message parameter is required"})
-            }
-        result = {
-            "echoed_message": message,
-            "tool": "echo",
-            "message_length": len(message)
-        }
+            return {"statusCode": 400, "body": json.dumps({"error": "message parameter is required"})}
+        result = {"echoed_message": message, "tool": "echo", "message_length": len(message)}
     else:
         return {
-            'statusCode': 404,
-            'body': json.dumps({
-                "error": f"Unknown tool: {tool_name}",
-                "available_tools": ["hello", "echo"]
-            })
+            "statusCode": 404,
+            "body": json.dumps({"error": f"Unknown tool: {tool_name}", "available_tools": ["hello", "echo"]}),
         }
 
     print(f"Result: {result}")
