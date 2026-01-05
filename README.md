@@ -43,9 +43,9 @@ All Gateway targets are **Lambda functions**. The `lambda-proxy` Lambda forwards
 # 1. Initial setup (creates config files from examples)
 make setup
 
-# 2. Edit configuration files
-#    - terraform/config/.env: Set AWS_PROFILE and AWS_REGION
-#    - terraform/terraform.tfvars: Set project settings
+# 2. Edit configuration files (see Configuration Files section below)
+#    - terraform/config/.env: AWS credentials and optional features
+#    - terraform/terraform.tfvars: Project settings
 
 # 3. Initialize and deploy
 make init
@@ -54,6 +54,33 @@ make deploy
 # 4. Get gateway endpoint
 make output
 ```
+
+## Configuration Files
+
+### terraform/config/.env
+
+Environment variables for the Makefile and Terraform. Created from `.env.example` by `make setup`.
+
+```bash
+# AWS credentials (required)
+AWS_PROFILE=root
+AWS_REGION=us-east-1
+
+# n8n Cross-Account Configuration (optional)
+# Set this to enable cross-account Lambda invocation from n8n
+# See docs/n8n-integration.md for full setup instructions
+TF_VAR_n8n_cross_account_id=739907928487
+```
+
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `AWS_PROFILE` | Yes | AWS CLI profile to use |
+| `AWS_REGION` | Yes | AWS region for deployment |
+| `TF_VAR_n8n_cross_account_id` | No | AWS account ID where n8n runs (enables cross-account Lambda invocation) |
+
+### terraform/terraform.tfvars
+
+Terraform variables for project configuration. See [Configuration](docs/configuration.md) for all options.
 
 ## MCP Client Configuration
 

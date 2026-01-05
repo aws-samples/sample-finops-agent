@@ -4,9 +4,8 @@
 # Wrapper for terraform commands with AWS credential management
 # -----------------------------------------------------------------------------
 
-# Load from terraform/config/.env if exists (for Makefile AWS credentials only)
+# Load from terraform/config/.env if exists
 -include terraform/config/.env
-export
 
 # Terraform directory
 TF_DIR := terraform
@@ -15,8 +14,12 @@ TF_DIR := terraform
 AWS_PROFILE ?= default
 AWS_REGION  ?= us-east-1
 
-# Common terraform command with AWS credentials (runs in terraform/ directory)
-TF := AWS_PROFILE=$(AWS_PROFILE) AWS_REGION=$(AWS_REGION) terraform -chdir=$(TF_DIR)
+# Export all TF_VAR_* variables to terraform subprocesses
+export AWS_PROFILE AWS_REGION
+export $(filter TF_VAR_%,$(.VARIABLES))
+
+# Common terraform command (runs in terraform/ directory)
+TF := terraform -chdir=$(TF_DIR)
 
 .PHONY: help setup init plan apply apply-auto destroy output fmt validate lint-init lint ruff-check ruff-format ruff-fix check clean deploy update-schemas test-lambdas
 
