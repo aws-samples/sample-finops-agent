@@ -34,8 +34,9 @@ terraform.rc
 # Terraform plan files
 *.tfplan
 
-# Lambda zip files created during build
+# Lambda zip files and build artifacts
 terraform/modules/lambda-proxy/*.zip
+terraform/modules/mcp-lambda/.build/
 
 # -----------------------------------------------------------------------------
 # Environment files
