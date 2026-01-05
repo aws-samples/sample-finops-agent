@@ -118,3 +118,25 @@ variable "runtime_aws_policy_arn" {
   type        = string
   default     = "arn:aws:iam::aws:policy/ReadOnlyAccess"
 }
+
+# -----------------------------------------------------------------------------
+# n8n Cross-Account Configuration
+# -----------------------------------------------------------------------------
+
+variable "n8n_cross_account_id" {
+  description = "AWS Account ID where n8n is deployed (for cross-account Lambda invocation)"
+  type        = string
+  default     = ""
+
+  validation {
+    condition     = var.n8n_cross_account_id == "" || can(regex("^[0-9]{12}$", var.n8n_cross_account_id))
+    error_message = "n8n_cross_account_id must be a 12-digit AWS account ID or empty string."
+  }
+}
+
+variable "n8n_external_id" {
+  description = "External ID for n8n role assumption (leave empty to auto-generate)"
+  type        = string
+  default     = ""
+  sensitive   = true
+}
