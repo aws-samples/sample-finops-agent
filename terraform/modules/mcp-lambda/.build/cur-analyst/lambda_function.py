@@ -458,12 +458,22 @@ def lambda_handler(event, context):
 
     Gateway passes tool name via context.client_context.custom["bedrockAgentCoreToolName"]
     in format: <target_name>___<tool_name>
+
+    For direct invocation (testing), pass tool_name in the event body.
     """
     print(f"Event: {json.dumps(event)}")
 
-    # Get tool name from Gateway context
-    extended_tool_name = context.client_context.custom["bedrockAgentCoreToolName"]
-    tool_name = extended_tool_name.split("___")[1]
+    # Get tool name from Gateway context or event (for testing)
+    tool_name = None
+    if context and hasattr(context, 'client_context') and context.client_context:
+        custom = getattr(context.client_context, 'custom', None)
+        if custom and "bedrockAgentCoreToolName" in custom:
+            extended_tool_name = custom["bedrockAgentCoreToolName"]
+            tool_name = extended_tool_name.split("___")[1]
+
+    # Fallback: get tool_name from event body (for direct testing)
+    if not tool_name:
+        tool_name = event.get("tool_name", "analyze_cur")
 
     print(f"Tool name: {tool_name}")
 
