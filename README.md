@@ -34,8 +34,43 @@ All Gateway targets are **Lambda functions**. The `lambda-proxy` Lambda forwards
 ## Prerequisites
 
 1. **AWS Marketplace Subscription** - [Subscribe to aws-api-mcp-server](https://aws.amazon.com/marketplace/pp/prodview-lqqkwbcraxsgw) (free, accept terms)
-2. **Amazon Federate** - Set up in nonprod environment for JWT authentication
+2. **Identity Provider (IdP)** - OIDC-compliant IdP for JWT authentication (see below)
 3. **Tools** - AWS CLI configured, Terraform >= 1.5.0, tflint (optional)
+
+## Identity Provider Setup
+
+AgentCore Gateway supports three authentication modes: `CUSTOM_JWT`, `AWS_IAM`, or `NONE`. For MCP clients like QuickSuite, you'll need `CUSTOM_JWT` with an OIDC-compliant identity provider.
+
+### QuickSuite OAuth Requirements
+
+QuickSuite connects to AgentCore Gateway using OAuth. You'll need these credentials from your IdP:
+
+| Field | Description |
+|-------|-------------|
+| Client ID | OAuth application identifier |
+| Client Secret | OAuth application secret |
+| Token URL | Endpoint to exchange credentials for tokens |
+| Authorization URL | Endpoint for user authorization |
+
+### Amazon Federate (Internal Example)
+
+1. Go to [Amazon Federate](https://idp.federate.amazon.com) and create a **Service Profile**
+2. Configure OAuth grant type (e.g., Client Credentials)
+3. Note down Client ID, Client Secret, and Discovery URL
+4. Update `terraform.tfvars`:
+   ```hcl
+   gateway_auth_type     = "CUSTOM_JWT"
+   jwt_discovery_url     = "https://idp.federate.amazon.com/.well-known/openid-configuration"
+   jwt_allowed_audiences = ["your-service-profile-name"]
+   ```
+
+### Other Identity Providers
+
+Any OIDC-compliant IdP works. Update `jwt_discovery_url` and `jwt_allowed_audiences` accordingly:
+
+- **Okta**: `https://{domain}.okta.com/.well-known/openid-configuration`
+- **Azure AD**: `https://login.microsoftonline.com/{tenant-id}/v2.0/.well-known/openid-configuration`
+- **Auth0**: `https://{domain}.auth0.com/.well-known/openid-configuration`
 
 ## Quick Start
 
@@ -49,7 +84,7 @@ make setup
 
 # 3. Initialize and deploy
 make init
-make deploy
+make deploy   # Runs: apply-auto + update-schemas
 
 # 4. Get gateway endpoint
 make output
@@ -131,6 +166,21 @@ After deployment, configure your MCP client with the gateway endpoint from `make
 | [Configuration](docs/configuration.md) | tfvars, permissions, make commands |
 | [Troubleshooting](docs/troubleshooting.md) | Debugging, logs, common issues |
 | [n8n Integration](docs/n8n-integration.md) | Cross-account Lambda for CFM workflows |
+
+## Make Commands
+
+| Command | Description |
+|---------|-------------|
+| `make setup` | Initial setup - creates config files from examples |
+| `make init` | Initialize Terraform |
+| `make plan` | Show execution plan (check for drift) |
+| `make apply` | Apply changes (with confirmation) |
+| `make deploy` | Full deploy: `apply-auto` + `update-schemas` |
+| `make update-schemas` | Update gateway tool schemas from JSON files |
+| `make output` | Show outputs (gateway endpoint, etc.) |
+| `make destroy` | Destroy all resources |
+
+> **Note:** After `make apply`, run `make update-schemas` to update gateway targets with full tool definitions. Or use `make deploy` which does both.
 
 ## Cleanup
 
