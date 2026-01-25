@@ -6,25 +6,30 @@ The Terraform AWS provider only supports 1 tool_schema per Lambda target,
 but the AWS API supports multiple. This script updates the targets with
 the full tool schema definitions after Terraform creates them.
 
-Usage:
-    python3 scripts/update_tool_schemas.py
+Usage (via Makefile - recommended):
+    make update-schemas    # Auto-gets GATEWAY_ID from terraform output
+    make deploy            # Runs apply + update-schemas
+
+Usage (direct):
+    GATEWAY_ID=<gateway-id> python3 scripts/update_tool_schemas.py
 """
 
 import os
+import sys
 
 import boto3
 
 
 AWS_REGION = os.environ.get("AWS_REGION", "us-east-1")
 AWS_PROFILE = os.environ.get("AWS_PROFILE", "default")
-GATEWAY_ID = os.environ.get("GATEWAY_ID", "aiops-mcp-gateway-gateway-nniwnghwtn")
-ACCOUNT_ID = os.environ.get("AWS_ACCOUNT_ID", "028969191743")
+# GATEWAY_ID is set automatically by Makefile from terraform output
+# Run via 'make update-schemas' or 'make deploy' - do not run this script directly
+GATEWAY_ID = os.environ.get("GATEWAY_ID", "")
 
 # Tool schemas for each target
 TOOL_SCHEMAS = {
     "aiops-mcp-gateway-lambda-target": {
-        "lambda_arn": f"arn:aws:lambda:{AWS_REGION}:{ACCOUNT_ID}:function:aiops-mcp-gateway-proxy",
-        "description": "AWS API MCP server proxy (call_aws, suggest_aws_commands)",
+                "description": "AWS API MCP server proxy (call_aws, suggest_aws_commands)",
         "tools": [
             {
                 "name": "call_aws",
@@ -57,8 +62,7 @@ TOOL_SCHEMAS = {
         ],
     },
     "test-mcp": {
-        "lambda_arn": f"arn:aws:lambda:{AWS_REGION}:{ACCOUNT_ID}:function:aiops-mcp-gateway-test-mcp",
-        "description": "Simple test MCP tools (hello, echo)",
+                "description": "Simple test MCP tools (hello, echo)",
         "tools": [
             {
                 "name": "hello",
@@ -82,8 +86,7 @@ TOOL_SCHEMAS = {
         ],
     },
     "cost-explorer-mcp": {
-        "lambda_arn": f"arn:aws:lambda:{AWS_REGION}:{ACCOUNT_ID}:function:aiops-mcp-gateway-cost-explorer-mcp",
-        "description": "AWS Cost Explorer MCP tools (get_today_date, get_dimension_values, get_tag_values, get_cost_and_usage, get_cost_and_usage_comparisons, get_cost_forecast)",
+                "description": "AWS Cost Explorer MCP tools (get_today_date, get_dimension_values, get_tag_values, get_cost_and_usage, get_cost_and_usage_comparisons, get_cost_forecast)",
         "tools": [
             {
                 "name": "get_today_date",
@@ -201,8 +204,7 @@ TOOL_SCHEMAS = {
         ],
     },
     "athena-mcp": {
-        "lambda_arn": f"arn:aws:lambda:{AWS_REGION}:{ACCOUNT_ID}:function:aiops-mcp-gateway-athena-mcp",
-        "description": "AWS Athena MCP tools (start_query_execution, get_query_execution, get_query_results, list_query_executions, list_databases, list_tables, get_table_metadata, stop_query_execution)",
+                "description": "AWS Athena MCP tools (start_query_execution, get_query_execution, get_query_results, list_query_executions, list_databases, list_tables, get_table_metadata, stop_query_execution)",
         "tools": [
             {
                 "name": "start_query_execution",
@@ -329,8 +331,7 @@ TOOL_SCHEMAS = {
         ],
     },
     "cur-analyst-mcp": {
-        "lambda_arn": f"arn:aws:lambda:{AWS_REGION}:{ACCOUNT_ID}:function:aiops-mcp-gateway-cur-analyst-mcp",
-        "description": "CUR Data Analyst MCP tools (analyze_cur)",
+                "description": "CUR Data Analyst MCP tools (analyze_cur)",
         "tools": [
             {
                 "name": "analyze_cur",
@@ -358,7 +359,7 @@ def update_target_tool_schemas(client, gateway_id: str, target_name: str, config
     """Update a gateway target with the full tool schema."""
     print(f"\nUpdating {target_name}...")
 
-    # Get current target
+    # Get current target list to find target_id
     targets = client.list_gateway_targets(gatewayIdentifier=gateway_id, maxResults=100)
     target_id = None
     for target in targets.get("items", []):
@@ -370,12 +371,25 @@ def update_target_tool_schemas(client, gateway_id: str, target_name: str, config
         print(f"  Target {target_name} not found!")
         return False
 
+    # Get full target details to retrieve Lambda ARN
+    target_details = client.get_gateway_target(gatewayIdentifier=gateway_id, targetId=target_id)
+    existing_lambda_arn = (
+        target_details.get("targetConfiguration", {})
+        .get("mcp", {})
+        .get("lambda", {})
+        .get("lambdaArn")
+    )
+
+    if not existing_lambda_arn:
+        print(f"  Could not get existing Lambda ARN for {target_name}!")
+        return False
+
     print(f"  Target ID: {target_id}")
     print(f"  Tools: {len(config['tools'])}")
 
-    # Build the target configuration with all tools
+    # Build the target configuration with all tools (reuse existing Lambda ARN)
     lambda_target_config = {
-        "mcp": {"lambda": {"lambdaArn": config["lambda_arn"], "toolSchema": {"inlinePayload": config["tools"]}}}
+        "mcp": {"lambda": {"lambdaArn": existing_lambda_arn, "toolSchema": {"inlinePayload": config["tools"]}}}
     }
 
     credential_config = [{"credentialProviderType": "GATEWAY_IAM_ROLE"}]
@@ -397,6 +411,12 @@ def update_target_tool_schemas(client, gateway_id: str, target_name: str, config
 
 
 def main():
+    if not GATEWAY_ID:
+        print("Error: GATEWAY_ID environment variable not set.")
+        print("Run via 'make update-schemas' or 'make deploy' which sets it automatically.")
+        print("Or set manually: GATEWAY_ID=<your-gateway-id> python scripts/update_tool_schemas.py")
+        sys.exit(1)
+
     print("=" * 60)
     print("Updating Gateway Target Tool Schemas")
     print("=" * 60)

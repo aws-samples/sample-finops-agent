@@ -125,10 +125,16 @@ show: ## Show current state
 
 # MCP Lambda tools
 update-schemas: ## Update Gateway tool schemas (run after apply)
-	AWS_PROFILE=$(AWS_PROFILE) AWS_REGION=$(AWS_REGION) uv run --with boto3 python scripts/update_tool_schemas.py
+	$(eval GATEWAY_ID := $(shell $(TF) output -raw gateway_id 2>/dev/null))
+	@if [ -z "$(GATEWAY_ID)" ]; then \
+		echo "Error: gateway_id not found. Run 'make apply' first."; \
+		exit 1; \
+	fi
+	GATEWAY_ID=$(GATEWAY_ID) AWS_PROFILE=$(AWS_PROFILE) AWS_REGION=$(AWS_REGION) uv run --with boto3 python scripts/update_tool_schemas.py
 
 deploy: apply-auto update-schemas ## Full deploy (apply + update tool schemas)
 	@echo "Deployment complete!"
 
 test-lambdas: ## Test all MCP Lambda functions
-	AWS_PROFILE=$(AWS_PROFILE) AWS_REGION=$(AWS_REGION) uv run --with boto3 python scripts/test_mcp_lambdas.py
+	$(eval GATEWAY_ID := $(shell $(TF) output -raw gateway_id 2>/dev/null))
+	GATEWAY_ID=$(GATEWAY_ID) AWS_PROFILE=$(AWS_PROFILE) AWS_REGION=$(AWS_REGION) uv run --with boto3 python scripts/test_mcp_lambdas.py
