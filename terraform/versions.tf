@@ -27,10 +27,29 @@ terraform {
   # }
 }
 
+# Default provider - data collection account (where gateway deploys)
 provider "aws" {
-  region = var.aws_region
+  region  = var.aws_region
+  profile = var.aws_profile != "" ? var.aws_profile : null
 
   default_tags {
     tags = var.tags
   }
+}
+
+# Management account provider - for cross-account IAM role (conditional)
+# Only used when management_account_profile is set for cross-account deployment
+provider "aws" {
+  alias   = "management"
+  region  = var.aws_region
+  profile = var.management_account_profile != "" ? var.management_account_profile : null
+
+  default_tags {
+    tags = var.tags
+  }
+
+  # Skip metadata API calls if not doing cross-account deployment
+  skip_metadata_api_check     = var.management_account_profile == ""
+  skip_requesting_account_id  = var.management_account_profile == ""
+  skip_credentials_validation = var.management_account_profile == ""
 }

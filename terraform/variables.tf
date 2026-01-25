@@ -140,3 +140,54 @@ variable "n8n_external_id" {
   default     = ""
   sensitive   = true
 }
+
+# -----------------------------------------------------------------------------
+# AWS Profile Configuration
+# -----------------------------------------------------------------------------
+
+variable "aws_profile" {
+  description = "AWS CLI profile for data collection account"
+  type        = string
+  default     = ""
+}
+
+# -----------------------------------------------------------------------------
+# Cross-Account Management Account Configuration
+# -----------------------------------------------------------------------------
+# For data collection account deployments (alongside CUDOS/CID/KPI dashboards),
+# configure access to Cost Explorer and CUR data in the management account.
+
+variable "management_account_profile" {
+  description = "AWS CLI profile for management/payer account (empty = single-account mode)"
+  type        = string
+  default     = ""
+}
+
+variable "management_external_id" {
+  description = "External ID for cross-account role assumption (auto-generated if empty)"
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
+# -----------------------------------------------------------------------------
+# CUR Configuration
+# -----------------------------------------------------------------------------
+
+variable "cur_bucket_name" {
+  description = "S3 bucket containing CUR data (in management account)"
+  type        = string
+  default     = "my-cur-cost-export"
+}
+
+variable "cur_database_name" {
+  description = "Athena/Glue database name for CUR data"
+  type        = string
+  default     = "cur_database"
+}
+
+variable "cur_table_name" {
+  description = "Athena/Glue table name for CUR data"
+  type        = string
+  default     = "mycostexport"
+}

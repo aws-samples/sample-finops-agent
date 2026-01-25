@@ -95,6 +95,11 @@ module "mcp_cost_explorer" {
   memory_size         = 128
   gateway_arn_pattern = local.gateway_arn_pattern
 
+  # Cross-account configuration (uses locals from management-account-role.tf)
+  cross_account_enabled     = local.cross_account_enabled
+  cross_account_role_arn    = local.management_role_arn
+  cross_account_external_id = local.cross_account_external_id
+
   iam_policy_statements = [
     {
       actions = [
@@ -122,6 +127,11 @@ module "mcp_athena" {
   timeout             = 60
   memory_size         = 256
   gateway_arn_pattern = local.gateway_arn_pattern
+
+  # Cross-account configuration (uses locals from management-account-role.tf)
+  cross_account_enabled     = local.cross_account_enabled
+  cross_account_role_arn    = local.management_role_arn
+  cross_account_external_id = local.cross_account_external_id
 
   iam_policy_statements = [
     {
@@ -181,6 +191,19 @@ module "mcp_cur_analyst" {
   memory_size         = 512
   gateway_arn_pattern = local.gateway_arn_pattern
 
+  # Cross-account configuration (uses locals from management-account-role.tf)
+  cross_account_enabled     = local.cross_account_enabled
+  cross_account_role_arn    = local.management_role_arn
+  cross_account_external_id = local.cross_account_external_id
+
+  # CUR configuration passed via environment variables
+  environment_variables = {
+    CUR_DATABASE        = var.cur_database_name
+    CUR_TABLE           = var.cur_table_name
+    CUR_OUTPUT_LOCATION = "s3://${var.cur_bucket_name}/athena-results/"
+    CUR_REGION          = var.aws_region
+  }
+
   iam_policy_statements = [
     # Cost Explorer for API data collection
     {
@@ -206,7 +229,7 @@ module "mcp_cur_analyst" {
       ]
       resources = ["*"]
     },
-    # S3 for CUR data and Athena results
+    # S3 for CUR data and Athena results (uses variable for bucket name)
     {
       actions = [
         "s3:GetObject",
@@ -215,8 +238,8 @@ module "mcp_cur_analyst" {
         "s3:ListBucket"
       ]
       resources = [
-        "arn:aws:s3:::my-cur-cost-export",
-        "arn:aws:s3:::my-cur-cost-export/*"
+        "arn:aws:s3:::${var.cur_bucket_name}",
+        "arn:aws:s3:::${var.cur_bucket_name}/*"
       ]
     },
     # Glue for Athena table metadata

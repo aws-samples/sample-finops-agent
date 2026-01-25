@@ -73,3 +73,23 @@ output "mcp_client_config" {
     }
   }
 }
+
+# -----------------------------------------------------------------------------
+# Cross-Account Configuration Outputs
+# -----------------------------------------------------------------------------
+
+output "management_role_arn" {
+  description = "IAM role ARN in management account (for cross-account access)"
+  value       = local.management_role_arn
+}
+
+output "cross_account_external_id" {
+  description = "External ID for cross-account role assumption (save this securely!)"
+  value       = local.cross_account_external_id
+  sensitive   = true
+}
+
+output "cross_account_enabled" {
+  description = "Whether cross-account deployment is enabled"
+  value       = var.management_account_profile != ""
+}
