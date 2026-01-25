@@ -250,6 +250,7 @@ After deployment, configure your MCP client with the gateway endpoint from `make
 | [Configuration](docs/configuration.md) | tfvars, permissions, make commands |
 | [Troubleshooting](docs/troubleshooting.md) | Debugging, logs, common issues |
 | [n8n Integration](docs/n8n-integration.md) | Cross-account Lambda for CFM workflows |
+| [QuickSuite Agent Setup](docs/quicksuite-agent-setup.md) | Configure CFM agent in QuickSuite |
 
 ## Make Commands
 
