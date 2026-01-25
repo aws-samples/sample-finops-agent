@@ -1,6 +1,6 @@
-# AIOps MCP Gateway
+# FinOps MCP Gateway
 
-Deploy an Amazon Bedrock AgentCore Gateway that exposes MCP endpoints for AI assistants. Provides MCP clients (Claude Code, QuickSuite) secure access to AWS APIs.
+Deploy an Amazon Bedrock AgentCore Gateway that exposes MCP endpoints for AI-powered Cloud Financial Management (CFM). Provides MCP clients (Claude Code, QuickSuite) secure access to AWS Cost Explorer, Athena CUR, and AWS APIs.
 
 ## Architecture
 
