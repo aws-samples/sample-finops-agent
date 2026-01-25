@@ -33,7 +33,7 @@ All Gateway targets are **Lambda functions**. The `lambda-proxy` Lambda forwards
 
 ## Prerequisites
 
-1. **AWS Marketplace Subscription** - [Subscribe to aws-api-mcp-server](https://aws.amazon.com/marketplace/pp/prodview-lqqkwbcraxsgw) (free, accept terms)
+1. **AWS Marketplace Subscription** - [Subscribe to aws-api-mcp-server](https://aws.amazon.com/marketplace/pp/prodview-lqqkwbcraxsgw) (free, accept terms). For cross-account deployments, subscribe from the **data collection account**.
 2. **Identity Provider (IdP)** - OIDC-compliant IdP for JWT authentication (see below)
 3. **Tools** - AWS CLI configured, Terraform >= 1.5.0, tflint (optional)
 
@@ -96,26 +96,110 @@ make output
 
 Environment variables for the Makefile and Terraform. Created from `.env.example` by `make setup`.
 
+**Single-account mode** (gateway and CUR data in same account):
 ```bash
-# AWS credentials (required)
-AWS_PROFILE=root
+AWS_PROFILE=default
 AWS_REGION=us-east-1
-
-# n8n Cross-Account Configuration (optional)
-# Set this to enable cross-account Lambda invocation from n8n
-# See docs/n8n-integration.md for full setup instructions
-TF_VAR_n8n_cross_account_id=739907928487
 ```
 
-| Variable | Required | Description |
-|----------|----------|-------------|
-| `AWS_PROFILE` | Yes | AWS CLI profile to use |
-| `AWS_REGION` | Yes | AWS region for deployment |
-| `TF_VAR_n8n_cross_account_id` | No | AWS account ID where n8n runs (enables cross-account Lambda invocation) |
+**Cross-account mode** (see [Data Collection Account Deployment](#data-collection-account-deployment)):
+```bash
+AWS_REGION=us-east-1
+AWS_PROFILE=data_collection                    # For Makefile scripts
+TF_VAR_aws_profile=data_collection             # Terraform: data collection account
+TF_VAR_management_account_profile=root         # Terraform: management/payer account
+```
+
+| Variable | Description |
+|----------|-------------|
+| `AWS_PROFILE` | AWS CLI profile for Makefile scripts (update-schemas, test-lambdas) |
+| `AWS_REGION` | AWS region for deployment |
+| `TF_VAR_aws_profile` | Terraform provider profile for data collection account |
+| `TF_VAR_management_account_profile` | Terraform provider profile for management account (enables cross-account) |
+| `TF_VAR_n8n_cross_account_id` | AWS account ID where n8n runs (optional) |
 
 ### terraform/terraform.tfvars
 
 Terraform variables for project configuration. See [Configuration](docs/configuration.md) for all options.
+
+## Data Collection Account Deployment
+
+For organizations using the [AWS Cloud Intelligence Dashboards](https://docs.aws.amazon.com/guidance/latest/cloud-intelligence-dashboards/cudos-cid-kpi.html) architecture, deploy the MCP Gateway to your **data collection account** (alongside CUDOS, CID, and KPI dashboards) with cross-account access to Cost Explorer and CUR data in the **management/payer account**.
+
+### Architecture
+
+```
+Data Collection Account              Management/Payer Account
+┌─────────────────────────┐         ┌─────────────────────────┐
+│  CUDOS Dashboard        │         │  IAM Role               │
+│  CID Dashboard          │         │  (auto-created)         │
+│  KPI Dashboard          │         │                         │
+│                         │         │  Cost Explorer API      │
+│  MCP Gateway            │────────>│  CUR S3 Bucket          │
+│  - cost-explorer-mcp    │ Assume  │  Athena/Glue            │
+│  - cur-analyst-mcp      │  Role   │                         │
+│  - athena-mcp           │         │                         │
+└─────────────────────────┘         └─────────────────────────┘
+```
+
+### Why This Architecture?
+
+- **Centralized analytics**: All cost intelligence tools in one account
+- **Least privilege**: Gateway only gets read access via assumed role
+- **AWS best practice**: Follows Cloud Intelligence Dashboards pattern
+
+### Setup
+
+A single `make deploy` creates resources in both accounts. Just configure two AWS profiles.
+
+**Step 1: Subscribe to AWS Marketplace**
+
+Subscribe to [aws-api-mcp-server](https://aws.amazon.com/marketplace/pp/prodview-lqqkwbcraxsgw) from the **data collection account** (where the gateway will be deployed).
+
+**Step 2: Configure profiles**
+
+Edit `terraform/config/.env`:
+```bash
+AWS_REGION=us-east-1
+
+# For Makefile scripts (must match data collection account)
+AWS_PROFILE=data_collection
+
+# Terraform provider profiles
+TF_VAR_aws_profile=data_collection             # Data collection account (gateway deploys here)
+TF_VAR_management_account_profile=root         # Management/payer account (CUR data lives here)
+```
+
+**Step 3: Configure CUR settings**
+
+Edit `terraform/terraform.tfvars`:
+```hcl
+cur_bucket_name   = "your-cur-bucket-name"
+cur_database_name = "cur_database"
+cur_table_name    = "mycostexport"
+```
+
+**Step 4: Deploy**
+
+```bash
+make init
+make deploy
+```
+
+This creates:
+- IAM role in management account (with auto-generated External ID)
+- MCP Gateway + Lambdas in data collection account
+- Cross-account access configured automatically
+
+**Step 5: Verify deployment**
+
+```bash
+make output
+```
+
+### What is External ID?
+
+The External ID is a shared secret that prevents the "confused deputy" attack—where a malicious actor tricks a service into assuming a role it shouldn't. It's auto-generated and stored in Terraform state, so you don't need to manage it manually.
 
 ## MCP Client Configuration
 
@@ -176,7 +260,7 @@ After deployment, configure your MCP client with the gateway endpoint from `make
 | `make plan` | Show execution plan (check for drift) |
 | `make apply` | Apply changes (with confirmation) |
 | `make deploy` | Full deploy: `apply-auto` + `update-schemas` |
-| `make update-schemas` | Update gateway tool schemas from JSON files |
+| `make update-schemas` | Update gateway tool schemas (auto-detects gateway ID) |
 | `make output` | Show outputs (gateway endpoint, etc.) |
 | `make destroy` | Destroy all resources |
 
