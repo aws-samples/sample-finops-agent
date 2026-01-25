@@ -28,17 +28,28 @@ Required IAM Permissions:
 """
 
 import json
+import os
 import time
 
 import boto3
 
+# Cross-account support - shared module is packaged alongside lambda_function.py
+try:
+    from shared.cross_account import get_aws_client
+except ImportError:
+    # Fallback for single-account mode (shared module not present)
+    def get_aws_client(service_name, region_name=None, **kwargs):
+        client_kwargs = {"region_name": region_name} if region_name else {}
+        client_kwargs.update(kwargs)
+        return boto3.client(service_name, **client_kwargs)
 
-# Configuration
+
+# Configuration from environment variables (with defaults for backward compatibility)
 CUR_CONFIG = {
-    "database": "cur_database",
-    "table": "mycostexport",
-    "output_location": "s3://my-cur-cost-export/athena-results/",
-    "region": "us-east-1",
+    "database": os.environ.get("CUR_DATABASE", "cur_database"),
+    "table": os.environ.get("CUR_TABLE", "mycostexport"),
+    "output_location": os.environ.get("CUR_OUTPUT_LOCATION", "s3://my-cur-cost-export/athena-results/"),
+    "region": os.environ.get("CUR_REGION", "us-east-1"),
 }
 
 # Historical Queries (5)
@@ -158,7 +169,7 @@ def submit_historical_queries(report_month: str, compare_month: str) -> dict:
     Returns:
         Dictionary with query execution IDs
     """
-    athena = boto3.client("athena", region_name=CUR_CONFIG["region"])
+    athena = get_aws_client("athena", region_name=CUR_CONFIG["region"])
     query_ids = {}
 
     for name, query_template in HISTORICAL_QUERIES.items():
@@ -187,7 +198,7 @@ def submit_detailed_queries(report_month: str, compare_month: str) -> dict:
     Returns:
         Dictionary with query execution IDs
     """
-    athena = boto3.client("athena", region_name=CUR_CONFIG["region"])
+    athena = get_aws_client("athena", region_name=CUR_CONFIG["region"])
     query_ids = {}
 
     for name, query_template in DETAILED_QUERIES.items():
@@ -216,7 +227,7 @@ def retrieve_all_results(historical_ids: dict, detailed_ids: dict) -> dict:
     Returns:
         Dictionary with all query results
     """
-    athena = boto3.client("athena", region_name=CUR_CONFIG["region"])
+    athena = get_aws_client("athena", region_name=CUR_CONFIG["region"])
     results = {}
 
     all_ids = {**historical_ids, **detailed_ids}
@@ -283,7 +294,7 @@ def collect_cost_explorer_data() -> dict:
     """
     from datetime import datetime, timedelta
 
-    ce = boto3.client("ce", region_name=CUR_CONFIG["region"])
+    ce = get_aws_client("ce", region_name=CUR_CONFIG["region"])
 
     # Calculate date ranges
     today = datetime.now()
@@ -375,7 +386,7 @@ def collect_savings_and_forecast() -> dict:
     """
     from datetime import datetime, timedelta
 
-    ce = boto3.client("ce", region_name=CUR_CONFIG["region"])
+    ce = get_aws_client("ce", region_name=CUR_CONFIG["region"])
 
     today = datetime.now()
     # End date is exclusive for Cost Explorer

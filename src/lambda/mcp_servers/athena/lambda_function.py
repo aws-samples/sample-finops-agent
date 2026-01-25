@@ -54,6 +54,16 @@ import json
 
 import boto3
 
+# Cross-account support - shared module is packaged alongside lambda_function.py
+try:
+    from shared.cross_account import get_aws_client
+except ImportError:
+    # Fallback for single-account mode (shared module not present)
+    def get_aws_client(service_name, region_name=None, **kwargs):
+        client_kwargs = {"region_name": region_name} if region_name else {}
+        client_kwargs.update(kwargs)
+        return boto3.client(service_name, **client_kwargs)
+
 
 def lambda_handler(event, context):
     """
@@ -109,7 +119,7 @@ def handle_start_query_execution(event):
     if not query_string:
         return {"error": "query_string parameter is required"}
 
-    athena = boto3.client("athena")
+    athena = get_aws_client("athena")
 
     try:
         params = {"QueryString": query_string, "WorkGroup": workgroup}
@@ -152,7 +162,7 @@ def handle_get_query_execution(event):
     if not query_execution_id:
         return {"error": "query_execution_id parameter is required"}
 
-    athena = boto3.client("athena")
+    athena = get_aws_client("athena")
 
     try:
         response = athena.get_query_execution(QueryExecutionId=query_execution_id)
@@ -211,7 +221,7 @@ def handle_get_query_results(event):
     if not query_execution_id:
         return {"error": "query_execution_id parameter is required"}
 
-    athena = boto3.client("athena")
+    athena = get_aws_client("athena")
 
     try:
         # First check if query is complete
@@ -283,7 +293,7 @@ def handle_list_query_executions(event):
     max_results = event.get("max_results", 50)
     next_token = event.get("next_token")
 
-    athena = boto3.client("athena")
+    athena = get_aws_client("athena")
 
     try:
         params = {
@@ -341,7 +351,7 @@ def handle_list_databases(event):
     max_results = event.get("max_results", 50)
     next_token = event.get("next_token")
 
-    athena = boto3.client("athena")
+    athena = get_aws_client("athena")
 
     try:
         params = {"CatalogName": catalog, "MaxResults": min(max_results, 50)}
@@ -384,7 +394,7 @@ def handle_list_tables(event):
     if not database:
         return {"error": "database parameter is required"}
 
-    athena = boto3.client("athena")
+    athena = get_aws_client("athena")
 
     try:
         params = {"CatalogName": catalog, "DatabaseName": database, "MaxResults": min(max_results, 50)}
@@ -436,7 +446,7 @@ def handle_get_table_metadata(event):
     if not table:
         return {"error": "table parameter is required"}
 
-    athena = boto3.client("athena")
+    athena = get_aws_client("athena")
 
     try:
         response = athena.get_table_metadata(CatalogName=catalog, DatabaseName=database, TableName=table)
@@ -476,7 +486,7 @@ def handle_stop_query_execution(event):
     if not query_execution_id:
         return {"error": "query_execution_id parameter is required"}
 
-    athena = boto3.client("athena")
+    athena = get_aws_client("athena")
 
     try:
         athena.stop_query_execution(QueryExecutionId=query_execution_id)

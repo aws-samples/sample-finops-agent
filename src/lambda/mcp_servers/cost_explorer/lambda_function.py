@@ -44,6 +44,16 @@ from datetime import datetime, timedelta
 
 import boto3
 
+# Cross-account support - shared module is packaged alongside lambda_function.py
+try:
+    from shared.cross_account import get_aws_client
+except ImportError:
+    # Fallback for single-account mode (shared module not present)
+    def get_aws_client(service_name, region_name=None, **kwargs):
+        client_kwargs = {"region_name": region_name} if region_name else {}
+        client_kwargs.update(kwargs)
+        return boto3.client(service_name, **client_kwargs)
+
 
 def lambda_handler(event, context):
     """
@@ -103,7 +113,7 @@ def handle_get_dimension_values(event):
         end_date = today.strftime("%Y-%m-%d")
         start_date = (today - timedelta(days=30)).strftime("%Y-%m-%d")
 
-    ce = boto3.client("ce")
+    ce = get_aws_client("ce")
 
     try:
         response = ce.get_dimension_values(TimePeriod={"Start": start_date, "End": end_date}, Dimension=dimension)
@@ -134,7 +144,7 @@ def handle_get_tag_values(event):
         end_date = today.strftime("%Y-%m-%d")
         start_date = (today - timedelta(days=30)).strftime("%Y-%m-%d")
 
-    ce = boto3.client("ce")
+    ce = get_aws_client("ce")
 
     try:
         response = ce.get_tags(TimePeriod={"Start": start_date, "End": end_date}, TagKey=tag_key)
@@ -165,7 +175,7 @@ def handle_get_cost_and_usage(event):
         start_date = today.replace(day=1).strftime("%Y-%m-%d")
         end_date = today.strftime("%Y-%m-%d")
 
-    ce = boto3.client("ce")
+    ce = get_aws_client("ce")
 
     try:
         params = {
@@ -223,7 +233,7 @@ def handle_get_cost_and_usage_comparisons(event):
         previous_start = prev_month_end.replace(day=1).strftime("%Y-%m-%d")
         previous_end = prev_month_end.strftime("%Y-%m-%d")
 
-    ce = boto3.client("ce")
+    ce = get_aws_client("ce")
 
     try:
         # Get current period costs
@@ -305,7 +315,7 @@ def handle_get_cost_forecast(event):
         next_month = today.replace(day=28) + timedelta(days=4)
         end_date = (next_month.replace(day=1) + timedelta(days=31)).replace(day=1).strftime("%Y-%m-%d")
 
-    ce = boto3.client("ce")
+    ce = get_aws_client("ce")
 
     try:
         response = ce.get_cost_forecast(
