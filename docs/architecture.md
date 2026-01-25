@@ -2,7 +2,7 @@
 
 ## Overview
 
-The AIOps MCP Gateway deploys an Amazon Bedrock AgentCore Gateway that exposes MCP (Model Context Protocol) endpoints for AI assistants. This gateway provides MCP clients secure access to AWS APIs through multiple Lambda-based targets.
+The FinOps MCP Gateway deploys an Amazon Bedrock AgentCore Gateway that exposes MCP (Model Context Protocol) endpoints for Cloud Financial Management (CFM). This gateway provides MCP clients secure access to AWS APIs through multiple Lambda-based targets.
 
 ## Architecture Diagram
 
@@ -10,8 +10,8 @@ The AIOps MCP Gateway deploys an Amazon Bedrock AgentCore Gateway that exposes M
 ┌──────────────┐                 ┌─────────────────────────────────────────────────────────────────────────┐
 │  MCP Client  │  Federate JWT   │                              AWS Cloud                                  │
 │              │────────────────>│                                                                         │
-│ Claude Code  │                 │  ┌─────────────┐       ┌──────────────────────────────────────────────┐ │
-│  QuickSuite  │<────────────────│  │  AgentCore  │       │  Lambda Targets                              │ │
+│  QuickSuite  │                 │  ┌─────────────┐       ┌──────────────────────────────────────────────┐ │
+│              │<────────────────│  │  AgentCore  │       │  Lambda Targets                              │ │
 │              │                 │  │   Gateway   │       │                                              │ │
 └──────────────┘                 │  │             │──────>│  cost-explorer-mcp ───> Cost Explorer API    │ │
                                  │  │             │       │  athena-mcp ──────────> Athena + S3 + Glue   │ │
@@ -65,59 +65,72 @@ All Gateway targets are **Lambda functions**. The `lambda-proxy` Lambda forwards
 ## Project Structure
 
 ```
-aws-api-mcp-gateway/
+aws-finops-mcp-gateway/
 ├── .gitignore                 # Git ignore patterns
 ├── .gitmessage                # Commit message template
+├── CLAUDE.md                  # Project knowledge base
 ├── Makefile                   # Build commands (run from root)
 ├── README.md                  # Quick start guide
 │
 ├── docs/
-│   ├── architecture.md        # This file
-│   ├── mcp-tools-reference.md # All available MCP tools
-│   ├── configuration.md       # Detailed configuration guide
-│   ├── troubleshooting.md     # Debugging and common issues
-│   ├── n8n-integration.md     # Cross-account n8n setup
-│   └── architecture.drawio    # Architecture diagrams
+│   ├── architecture.md           # This file
+│   ├── configuration.md          # Detailed configuration guide
+│   ├── mcp-tools-reference.md    # All available MCP tools
+│   ├── n8n-integration.md        # Cross-account n8n setup
+│   ├── quicksuite-agent-setup.md # Configure CFM agent in QuickSuite
+│   └── troubleshooting.md        # Debugging and common issues
+│
+├── prompts/
+│   └── cur_analysis_report.md # CFM report generation prompt
 │
 ├── scripts/
-│   └── invoke_lambda.py       # Lambda testing script
+│   ├── invoke_lambda.py       # Lambda testing script
+│   ├── test_cur_analyst.py    # CUR analyst testing
+│   ├── test_mcp_lambdas.py    # MCP Lambda testing
+│   └── update_tool_schemas.py # Update gateway tool schemas
 │
 ├── src/
 │   └── lambda/
 │       ├── proxy/
-│       │   └── lambda_function.py  # Lambda proxy source code
+│       │   └── lambda_function.py     # Lambda proxy source code
 │       │
-│       └── mcp_servers/            # MCP Lambda servers
+│       └── mcp_servers/               # MCP Lambda servers
+│           ├── shared/
+│           │   ├── __init__.py
+│           │   └── cross_account.py   # Cross-account utilities
 │           ├── test/
-│           │   └── lambda_function.py  # Test tools (hello, echo)
+│           │   └── lambda_function.py # Test tools (hello, echo)
 │           ├── cost_explorer/
-│           │   └── lambda_function.py  # Cost Explorer tools
+│           │   └── lambda_function.py # Cost Explorer tools
 │           ├── athena/
-│           │   └── lambda_function.py  # Athena query tools
+│           │   └── lambda_function.py # Athena query tools
 │           └── cur_analyst/
-│               └── lambda_function.py  # CUR analysis tool
+│               └── lambda_function.py # CUR analysis tool
 │
 └── terraform/
-    ├── main.tf                # Module orchestration
-    ├── variables.tf           # Input variables
-    ├── outputs.tf             # Output values
-    ├── versions.tf            # Provider requirements
+    ├── main.tf                    # Module orchestration
+    ├── variables.tf               # Input variables
+    ├── outputs.tf                 # Output values
+    ├── versions.tf                # Provider requirements
+    ├── management-account-role.tf # Cross-account IAM role
+    ├── n8n-cross-account.tf       # n8n integration resources
     │
-    ├── config/                # Configuration examples
-    │   ├── terraform.tfvars.example
+    ├── config/                    # Configuration files
     │   ├── .env.example
+    │   ├── terraform.tfvars.example
     │   └── .tflint.hcl
     │
-    ├── tool-schemas/          # MCP tool schema definitions
+    ├── tool-schemas/              # MCP tool schema definitions
     │   ├── test.json
     │   ├── cost_explorer.json
-    │   └── athena.json
+    │   ├── athena.json
+    │   └── cur_analyst.json
     │
     └── modules/
-        ├── agentcore-runtime/ # MCP Server (AWS Marketplace)
-        ├── lambda-proxy/      # Lambda proxy function
-        ├── mcp-lambda/        # Reusable MCP Lambda module
-        └── agentcore-gateway/ # Gateway configuration
+        ├── agentcore-gateway/     # Gateway configuration
+        ├── agentcore-runtime/     # MCP Server (AWS Marketplace)
+        ├── lambda-proxy/          # Lambda proxy function
+        └── mcp-lambda/            # Reusable MCP Lambda module
 ```
 
 ## Security Model
