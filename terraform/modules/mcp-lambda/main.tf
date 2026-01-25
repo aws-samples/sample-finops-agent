@@ -29,13 +29,46 @@ locals {
 }
 
 # -----------------------------------------------------------------------------
-# Option 1: Single file packaging (no dependencies)
+# Option 1: Single file packaging (with shared modules if cross-account enabled)
 # -----------------------------------------------------------------------------
+
+# Build step for single file: copy source + shared modules
+resource "null_resource" "single_file_build" {
+  count = local.use_source_dir ? 0 : 1
+
+  triggers = {
+    source_hash = filemd5(var.source_file)
+    shared_hash = fileexists("${dirname(var.source_file)}/../shared/cross_account.py") ? filemd5("${dirname(var.source_file)}/../shared/cross_account.py") : ""
+    build_dir   = local.build_dir
+  }
+
+  provisioner "local-exec" {
+    command = <<-EOT
+      set -e
+      rm -rf "${local.build_dir}"
+      mkdir -p "${local.build_dir}"
+
+      # Copy Lambda function code
+      cp "${var.source_file}" "${local.build_dir}/"
+
+      # Copy shared modules if they exist
+      if [ -d "${dirname(var.source_file)}/../shared" ]; then
+        mkdir -p "${local.build_dir}/shared"
+        cp "${dirname(var.source_file)}/../shared/"*.py "${local.build_dir}/shared/" 2>/dev/null || true
+      fi
+
+      echo "Build complete: ${local.build_dir}"
+    EOT
+  }
+}
+
 data "archive_file" "lambda_zip_single" {
   count       = local.use_source_dir ? 0 : 1
   type        = "zip"
-  source_file = var.source_file
+  source_dir  = local.build_dir
   output_path = "${path.module}/.build/${var.server_name}_lambda.zip"
+
+  depends_on = [null_resource.single_file_build]
 }
 
 # -----------------------------------------------------------------------------
@@ -76,6 +109,12 @@ resource "null_resource" "pip_install" {
       # Copy Lambda function code
       cp "${var.source_dir}/lambda_function.py" "${local.build_dir}/"
 
+      # Copy shared modules if they exist
+      if [ -d "${var.source_dir}/../shared" ]; then
+        mkdir -p "${local.build_dir}/shared"
+        cp "${var.source_dir}/../shared/"*.py "${local.build_dir}/shared/" 2>/dev/null || true
+      fi
+
       echo "Build complete: ${local.build_dir}"
     EOT
   }
@@ -94,6 +133,17 @@ data "archive_file" "lambda_zip_dir" {
 # -----------------------------------------------------------------------------
 # Lambda Function
 # -----------------------------------------------------------------------------
+locals {
+  # Merge custom environment variables with cross-account variables
+  lambda_env_vars = merge(
+    var.environment_variables,
+    var.cross_account_role_arn != "" ? {
+      CROSS_ACCOUNT_ROLE_ARN    = var.cross_account_role_arn
+      CROSS_ACCOUNT_EXTERNAL_ID = var.cross_account_external_id
+    } : {}
+  )
+}
+
 resource "aws_lambda_function" "mcp" {
   function_name = "${var.project_name}-${var.server_name}-mcp"
   description   = var.description
@@ -106,6 +156,13 @@ resource "aws_lambda_function" "mcp" {
   role        = aws_iam_role.lambda.arn
   timeout     = var.timeout
   memory_size = var.memory_size
+
+  dynamic "environment" {
+    for_each = length(local.lambda_env_vars) > 0 ? [1] : []
+    content {
+      variables = local.lambda_env_vars
+    }
+  }
 
   tags = var.tags
 }

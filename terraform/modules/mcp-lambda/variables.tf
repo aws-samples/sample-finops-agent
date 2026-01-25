@@ -65,3 +65,32 @@ variable "tags" {
   type        = map(string)
   default     = {}
 }
+
+# -----------------------------------------------------------------------------
+# Cross-Account Configuration
+# -----------------------------------------------------------------------------
+
+variable "cross_account_enabled" {
+  description = "Whether cross-account access is enabled (controls IAM policy creation)"
+  type        = bool
+  default     = false
+}
+
+variable "cross_account_role_arn" {
+  description = "IAM role ARN to assume for cross-account access (empty = use execution role)"
+  type        = string
+  default     = ""
+}
+
+variable "cross_account_external_id" {
+  description = "External ID for cross-account role assumption"
+  type        = string
+  default     = ""
+  sensitive   = true
+}
+
+variable "environment_variables" {
+  description = "Environment variables for the Lambda function"
+  type        = map(string)
+  default     = {}
+}

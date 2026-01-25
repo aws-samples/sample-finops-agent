@@ -55,11 +55,24 @@ data "aws_iam_policy_document" "lambda_custom" {
   }
 }
 
-# Combine base and custom policies
+# Cross-account role assumption permission (conditional)
+data "aws_iam_policy_document" "lambda_cross_account" {
+  count = var.cross_account_enabled ? 1 : 0
+
+  statement {
+    sid       = "AssumeManagementAccountRole"
+    effect    = "Allow"
+    actions   = ["sts:AssumeRole"]
+    resources = [var.cross_account_role_arn]
+  }
+}
+
+# Combine base, custom, and cross-account policies
 data "aws_iam_policy_document" "lambda_combined" {
   source_policy_documents = concat(
     [data.aws_iam_policy_document.lambda_base.json],
-    length(var.iam_policy_statements) > 0 ? [data.aws_iam_policy_document.lambda_custom[0].json] : []
+    length(var.iam_policy_statements) > 0 ? [data.aws_iam_policy_document.lambda_custom[0].json] : [],
+    var.cross_account_enabled ? [data.aws_iam_policy_document.lambda_cross_account[0].json] : []
   )
 }
 
