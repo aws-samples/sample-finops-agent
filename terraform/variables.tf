@@ -191,3 +191,9 @@ variable "cur_table_name" {
   type        = string
   default     = "mycostexport"
 }
+
+variable "cur_athena_output_location" {
+  description = "S3 location for Athena query results (e.g., s3://my-bucket/athena-results/). If empty, defaults to s3://{cur_bucket_name}/athena-results/"
+  type        = string
+  default     = ""
+}

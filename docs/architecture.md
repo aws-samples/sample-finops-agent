@@ -117,7 +117,9 @@ aws-finops-mcp-gateway/
     │
     ├── config/                    # Configuration files
     │   ├── .env.example
+    │   ├── .env                   # Your AWS credentials (gitignored)
     │   ├── terraform.tfvars.example
+    │   ├── terraform.tfvars       # Your project settings (gitignored)
     │   └── .tflint.hcl
     │
     ├── tool-schemas/              # MCP tool schema definitions

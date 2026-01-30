@@ -11,12 +11,33 @@ AWS_PROFILE=default
 AWS_REGION=us-east-1
 ```
 
-### terraform/terraform.tfvars
+### terraform/config/terraform.tfvars
 
-Main Terraform configuration.
+Main Terraform configuration. Created from `terraform.tfvars.example` by `make setup`.
+
+#### CUR Configuration (Required)
+
+You **must** configure these variables to match your CUR 2.0 export. Find these values in the AWS Glue Data Catalog or Athena console:
 
 ```hcl
-# Required
+# CUR (Cost and Usage Report) Configuration
+cur_bucket_name            = "your-cur-bucket"      # S3 bucket containing CUR data
+cur_database_name          = "your_cur_database"    # Glue/Athena database name
+cur_table_name             = "your_cur_table"       # Glue/Athena table name
+cur_athena_output_location = ""                     # Optional: custom S3 path for Athena results
+                                                    # Defaults to s3://{cur_bucket}/athena-results/
+```
+
+To find your CUR database and table names:
+1. Go to AWS Console → Athena → Query Editor
+2. In the left panel, look under "Data" → "AwsDataCatalog"
+3. Find the database (often named like `athenacurcfn_your_report_name`)
+4. The table is typically named after your CUR export
+
+#### Other Settings
+
+```hcl
+# Project settings
 project_name = "aiops-mcp-gateway"
 aws_region   = "us-east-1"
 

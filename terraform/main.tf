@@ -200,7 +200,7 @@ module "mcp_cur_analyst" {
   environment_variables = {
     CUR_DATABASE        = var.cur_database_name
     CUR_TABLE           = var.cur_table_name
-    CUR_OUTPUT_LOCATION = "s3://${var.cur_bucket_name}/athena-results/"
+    CUR_OUTPUT_LOCATION = var.cur_athena_output_location != "" ? var.cur_athena_output_location : "s3://${var.cur_bucket_name}/athena-results/"
     CUR_REGION          = var.aws_region
   }
 

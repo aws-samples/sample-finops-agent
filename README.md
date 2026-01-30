@@ -79,8 +79,8 @@ This deploys the MCP Gateway infrastructure to AWS:
 make setup
 
 # 2. Edit configuration files (see Configuration Files section below)
-#    - terraform/config/.env: AWS credentials and optional features
-#    - terraform/terraform.tfvars: Project settings
+#    - terraform/config/.env: AWS credentials and cross-account settings
+#    - terraform/config/terraform.tfvars: CUR database/table names (REQUIRED)
 
 # 3. Initialize and deploy
 make init
@@ -120,15 +120,27 @@ TF_VAR_management_account_profile=root         # Terraform: management/payer acc
 | `TF_VAR_management_account_profile` | Terraform provider profile for management account (enables cross-account) |
 | `TF_VAR_n8n_cross_account_id`       | AWS account ID where n8n runs (optional)                                  |
 
-### terraform/terraform.tfvars
+### terraform/config/terraform.tfvars
 
-Terraform variables for project configuration. Key settings:
+Terraform variables for project configuration. Created from `terraform.tfvars.example` by `make setup`.
+
+**Required: CUR Configuration**
+
+You must configure these variables to match your CUR 2.0 export settings. Find these values in the AWS Cost and Usage Reports console or your Athena/Glue setup:
 
 ```hcl
-project_name      = "finops-mcp"           # Prefix for all resources
-cur_bucket_name   = "your-cur-bucket"      # S3 bucket with CUR 2.0 data
-cur_database_name = "cur_database"         # Glue database name
-cur_table_name    = "mycostexport"         # Glue table name
+# CUR (Cost and Usage Report) Configuration - REQUIRED
+cur_bucket_name            = "your-cur-bucket"      # S3 bucket with CUR 2.0 data
+cur_database_name          = "your_cur_database"    # Glue database name (check Athena)
+cur_table_name             = "your_cur_table"       # Glue table name (check Athena)
+cur_athena_output_location = ""                     # Optional: S3 path for Athena results
+                                                    # Defaults to s3://{cur_bucket}/athena-results/
+```
+
+**Other settings:**
+
+```hcl
+project_name      = "finops-mcp"           # Prefix for all resources (optional)
 ```
 
 See [Configuration](docs/configuration.md) for all options.
@@ -153,7 +165,7 @@ QuickSuite connects to AgentCore Gateway using OAuth. You'll need these credenti
 1. Go to [Amazon Federate](https://idp.federate.amazon.com) and create a **Service Profile**
 2. Configure OAuth grant type (e.g., Client Credentials)
 3. Note down Client ID, Client Secret, and Discovery URL
-4. Update `terraform.tfvars`:
+4. Update `terraform/config/terraform.tfvars`:
    ```hcl
    gateway_auth_type     = "CUSTOM_JWT"
    jwt_discovery_url     = "https://idp.federate.amazon.com/.well-known/openid-configuration"

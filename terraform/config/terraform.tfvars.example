@@ -1,7 +1,7 @@
 # -----------------------------------------------------------------------------
 # AIOps MCP Gateway Proxy - Terraform Variables
 # -----------------------------------------------------------------------------
-# Copy this file to terraform.tfvars and customize for your deployment
+# Copy this file to terraform/config/terraform.tfvars and customize for your deployment
 # -----------------------------------------------------------------------------
 
 # REQUIRED: Project name prefix (must start with letter, lowercase, hyphens ok)
@@ -51,6 +51,23 @@ jwt_allowed_clients   = []  # Empty = allow all clients
 # Default: ReadOnlyAccess - allows read-only access to most AWS services
 # For more permissions, use: arn:aws:iam::aws:policy/PowerUserAccess
 runtime_aws_policy_arn = "arn:aws:iam::aws:policy/ReadOnlyAccess"
+
+# -----------------------------------------------------------------------------
+# CUR (Cost and Usage Report) Configuration
+# -----------------------------------------------------------------------------
+
+# S3 bucket containing CUR 2.0 data (in management account)
+cur_bucket_name = "my-cur-cost-export"
+
+# Athena/Glue database name for CUR data
+cur_database_name = "cur_database"
+
+# Athena/Glue table name for CUR data
+cur_table_name = "mycostexport"
+
+# S3 location for Athena query results (optional)
+# If empty, defaults to s3://{cur_bucket_name}/athena-results/
+cur_athena_output_location = ""
 
 # -----------------------------------------------------------------------------
 # Optional Configuration

@@ -20,6 +20,7 @@ export $(filter TF_VAR_%,$(.VARIABLES))
 
 # Common terraform command (runs in terraform/ directory)
 TF := terraform -chdir=$(TF_DIR)
+TF_VARS := -var-file=config/terraform.tfvars
 
 .PHONY: help setup init plan apply apply-auto destroy output fmt validate lint-init lint ruff-check ruff-format ruff-fix check clean deploy update-schemas test-lambdas
 
@@ -35,11 +36,11 @@ help: ## Show this help
 	@echo "  AWS_REGION:  $(AWS_REGION)"
 
 setup: ## Initial setup - copy example configs
-	@if [ ! -f $(TF_DIR)/terraform.tfvars ]; then \
-		cp $(TF_DIR)/config/terraform.tfvars.example $(TF_DIR)/terraform.tfvars; \
-		echo "Created $(TF_DIR)/terraform.tfvars - please edit with your values"; \
+	@if [ ! -f $(TF_DIR)/config/terraform.tfvars ]; then \
+		cp $(TF_DIR)/config/terraform.tfvars.example $(TF_DIR)/config/terraform.tfvars; \
+		echo "Created $(TF_DIR)/config/terraform.tfvars - please edit with your values"; \
 	else \
-		echo "$(TF_DIR)/terraform.tfvars already exists"; \
+		echo "$(TF_DIR)/config/terraform.tfvars already exists"; \
 	fi
 	@if [ ! -f $(TF_DIR)/config/.env ]; then \
 		cp $(TF_DIR)/config/.env.example $(TF_DIR)/config/.env; \
@@ -50,26 +51,26 @@ setup: ## Initial setup - copy example configs
 	@echo ""
 	@echo "Next steps:"
 	@echo "  1. Edit $(TF_DIR)/config/.env with your AWS_PROFILE and AWS_REGION"
-	@echo "  2. Edit $(TF_DIR)/terraform.tfvars with your project settings"
+	@echo "  2. Edit $(TF_DIR)/config/terraform.tfvars with your project settings"
 	@echo "  3. Run 'make init' to initialize Terraform"
 
 init: ## Initialize Terraform
 	$(TF) init
 
 plan: ## Show execution plan
-	$(TF) plan
+	$(TF) plan $(TF_VARS)
 
 apply: ## Apply changes (with confirmation)
-	$(TF) apply
+	$(TF) apply $(TF_VARS)
 
 apply-auto: ## Apply changes (auto-approve)
-	$(TF) apply -auto-approve
+	$(TF) apply $(TF_VARS) -auto-approve
 
 destroy: ## Destroy all resources (with confirmation)
-	$(TF) destroy
+	$(TF) destroy $(TF_VARS)
 
 destroy-auto: ## Destroy all resources (auto-approve)
-	$(TF) destroy -auto-approve
+	$(TF) destroy $(TF_VARS) -auto-approve
 
 output: ## Show outputs (gateway endpoint, etc.)
 	$(TF) output
@@ -115,7 +116,7 @@ clean-all: ## Remove all Terraform files including state
 
 # Convenience targets
 refresh: ## Refresh state
-	$(TF) refresh
+	$(TF) refresh $(TF_VARS)
 
 state-list: ## List resources in state
 	$(TF) state list

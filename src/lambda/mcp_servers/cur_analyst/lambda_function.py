@@ -59,7 +59,7 @@ HISTORICAL_QUERIES = {
                ROUND(SUM(CAST(unblended_cost AS DOUBLE)), 2) as total_unblended,
                ROUND(SUM(CAST(amortized_cost AS DOUBLE)), 2) as total_amortized,
                COUNT(*) as line_items
-        FROM cur_database.mycostexport
+        FROM {database}.{table}
         WHERE billing_period LIKE '{report_month}%' OR billing_period LIKE '{compare_month}%'
         GROUP BY billing_period, linked_account_id, linked_account_name
         ORDER BY billing_period DESC, total_unblended DESC
@@ -70,7 +70,7 @@ HISTORICAL_QUERIES = {
                ROUND(SUM(CASE WHEN billing_period LIKE '{compare_month}%' THEN CAST(unblended_cost AS DOUBLE) ELSE 0 END), 2) as previous_cost,
                ROUND(SUM(CASE WHEN billing_period LIKE '{report_month}%' THEN CAST(unblended_cost AS DOUBLE) ELSE 0 END) -
                SUM(CASE WHEN billing_period LIKE '{compare_month}%' THEN CAST(unblended_cost AS DOUBLE) ELSE 0 END), 2) as change
-        FROM cur_database.mycostexport
+        FROM {database}.{table}
         WHERE billing_period LIKE '{report_month}%' OR billing_period LIKE '{compare_month}%'
         GROUP BY linked_account_name, service
         HAVING SUM(CAST(unblended_cost AS DOUBLE)) > 0.01
@@ -81,7 +81,7 @@ HISTORICAL_QUERIES = {
         SELECT service, product_name,
                ROUND(SUM(CASE WHEN billing_period LIKE '{report_month}%' THEN CAST(unblended_cost AS DOUBLE) ELSE 0 END), 2) as current_cost,
                ROUND(SUM(CASE WHEN billing_period LIKE '{compare_month}%' THEN CAST(unblended_cost AS DOUBLE) ELSE 0 END), 2) as previous_cost
-        FROM cur_database.mycostexport
+        FROM {database}.{table}
         WHERE billing_period LIKE '{report_month}%' OR billing_period LIKE '{compare_month}%'
         GROUP BY service, product_name
         ORDER BY current_cost DESC
@@ -90,7 +90,7 @@ HISTORICAL_QUERIES = {
     "region_account": """
         SELECT linked_account_name, region,
                ROUND(SUM(CAST(unblended_cost AS DOUBLE)), 2) as total_cost
-        FROM cur_database.mycostexport
+        FROM {database}.{table}
         WHERE billing_period LIKE '{report_month}%'
         GROUP BY linked_account_name, region
         ORDER BY total_cost DESC
@@ -98,7 +98,7 @@ HISTORICAL_QUERIES = {
     "charge_type": """
         SELECT linked_account_name, charge_type, charge_category,
                ROUND(SUM(CAST(unblended_cost AS DOUBLE)), 2) as total_cost
-        FROM cur_database.mycostexport
+        FROM {database}.{table}
         WHERE billing_period LIKE '{report_month}%'
         GROUP BY linked_account_name, charge_type, charge_category
         ORDER BY total_cost DESC
@@ -110,7 +110,7 @@ DETAILED_QUERIES = {
     "daily_trend": """
         SELECT usage_date, linked_account_name,
                ROUND(SUM(CAST(unblended_cost AS DOUBLE)), 2) as daily_cost
-        FROM cur_database.mycostexport
+        FROM {database}.{table}
         WHERE billing_period LIKE '{report_month}%'
         GROUP BY usage_date, linked_account_name
         ORDER BY usage_date, linked_account_name
@@ -119,7 +119,7 @@ DETAILED_QUERIES = {
         SELECT linked_account_name, service, usage_type, operation, pricing_unit,
                ROUND(SUM(CAST(usage_quantity AS DOUBLE)), 4) as total_quantity,
                ROUND(SUM(CAST(unblended_cost AS DOUBLE)), 2) as total_cost
-        FROM cur_database.mycostexport
+        FROM {database}.{table}
         WHERE billing_period LIKE '{report_month}%' AND CAST(unblended_cost AS DOUBLE) > 0.01
         GROUP BY linked_account_name, service, usage_type, operation, pricing_unit
         ORDER BY total_cost DESC
@@ -130,7 +130,7 @@ DETAILED_QUERIES = {
                ROUND(SUM(CAST(unblended_cost AS DOUBLE)), 2) as unblended_cost,
                ROUND(SUM(CAST(amortized_cost AS DOUBLE)), 2) as amortized_cost,
                ROUND(SUM(CAST(public_cost AS DOUBLE)), 2) as public_cost
-        FROM cur_database.mycostexport
+        FROM {database}.{table}
         WHERE billing_period LIKE '{report_month}%'
         GROUP BY linked_account_name, purchase_option
         ORDER BY unblended_cost DESC
@@ -140,7 +140,7 @@ DETAILED_QUERIES = {
                ROUND(SUM(CAST(ri_sp_trueup AS DOUBLE)), 2) as ri_sp_trueup,
                ROUND(SUM(CAST(ri_sp_upfront_fees AS DOUBLE)), 2) as upfront_fees,
                ROUND(SUM(CAST(public_cost AS DOUBLE)) - SUM(CAST(unblended_cost AS DOUBLE)), 2) as estimated_savings
-        FROM cur_database.mycostexport
+        FROM {database}.{table}
         WHERE billing_period LIKE '{report_month}%' AND purchase_option != 'OnDemand'
         GROUP BY linked_account_name, service
         HAVING SUM(CAST(unblended_cost AS DOUBLE)) > 0
@@ -150,7 +150,7 @@ DETAILED_QUERIES = {
         SELECT linked_account_name, service, instance_type_family, instance_type, platform, tenancy,
                ROUND(SUM(CAST(unblended_cost AS DOUBLE)), 2) as total_cost,
                ROUND(SUM(CAST(usage_quantity AS DOUBLE)), 2) as total_hours
-        FROM cur_database.mycostexport
+        FROM {database}.{table}
         WHERE billing_period LIKE '{report_month}%' AND instance_type IS NOT NULL AND instance_type != ''
         GROUP BY linked_account_name, service, instance_type_family, instance_type, platform, tenancy
         ORDER BY total_cost DESC
@@ -173,7 +173,12 @@ def submit_historical_queries(report_month: str, compare_month: str) -> dict:
     query_ids = {}
 
     for name, query_template in HISTORICAL_QUERIES.items():
-        query = query_template.format(report_month=report_month, compare_month=compare_month)
+        query = query_template.format(
+            report_month=report_month,
+            compare_month=compare_month,
+            database=CUR_CONFIG["database"],
+            table=CUR_CONFIG["table"],
+        )
         response = athena.start_query_execution(
             QueryString=query,
             QueryExecutionContext={"Database": CUR_CONFIG["database"]},
@@ -202,7 +207,12 @@ def submit_detailed_queries(report_month: str, compare_month: str) -> dict:
     query_ids = {}
 
     for name, query_template in DETAILED_QUERIES.items():
-        query = query_template.format(report_month=report_month, compare_month=compare_month)
+        query = query_template.format(
+            report_month=report_month,
+            compare_month=compare_month,
+            database=CUR_CONFIG["database"],
+            table=CUR_CONFIG["table"],
+        )
         response = athena.start_query_execution(
             QueryString=query,
             QueryExecutionContext={"Database": CUR_CONFIG["database"]},
