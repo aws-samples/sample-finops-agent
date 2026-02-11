@@ -1,6 +1,6 @@
-# FinOps MCP Gateway
+# AWS FinOps Agent
 
-Deploy an Amazon Bedrock AgentCore Gateway that exposes MCP endpoints for Cloud Financial Management (CFM), i.e. FinOps. Provides MCP clients (QuickSuite) secure access to AWS Cost Explorer, Athena CUR, and AWS APIs.
+An MCP-enabled agent for Cloud Financial Management (CFM) that provides secure access to AWS Cost Explorer, Athena CUR 2.0, and AWS APIs. Deploys on Amazon Bedrock AgentCore and integrates with MCP clients like QuickSuite and Claude Code.
 
 ## Architecture
 
@@ -47,7 +47,7 @@ Data Collection Account              Management/Payer Account
 │  CID Dashboard          │         │  (auto-created)         │
 │  KPI Dashboard          │         │                         │
 │                         │         │  Cost Explorer API      │
-│  MCP Gateway            │────────>│  CUR S3 Bucket          │
+│  AWS FinOps Agent       │────────>│  CUR S3 Bucket          │
 │  - cost-explorer-mcp    │ Assume  │  Athena/Glue            │
 │  - cur-analyst-mcp      │  Role   │                         │
 │  - athena-mcp           │         │                         │
@@ -66,7 +66,7 @@ A single `make deploy` creates resources in both accounts. For cross-account, Te
 
 ## Quick Start
 
-This deploys the MCP Gateway infrastructure to AWS:
+This deploys the AWS FinOps Agent infrastructure:
 - AgentCore Gateway with JWT authentication
 - Lambda functions (cost-explorer-mcp, athena-mcp, cur-analyst-mcp, lambda-proxy)
 - IAM roles and policies (including cross-account role if configured)
