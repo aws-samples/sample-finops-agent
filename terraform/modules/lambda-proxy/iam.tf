@@ -40,13 +40,29 @@ data "aws_iam_policy_document" "lambda_permissions" {
 
   # InvokeAgentRuntime permission (includes runtime-endpoint sub-resources)
   statement {
-    sid       = "InvokeAgentRuntime"
-    effect    = "Allow"
-    actions   = ["bedrock-agentcore:InvokeAgentRuntime"]
+    sid     = "InvokeAgentRuntime"
+    effect  = "Allow"
+    actions = ["bedrock-agentcore:InvokeAgentRuntime"]
     resources = [
       var.runtime_arn,
       "${var.runtime_arn}/*"
     ]
+  }
+
+  # X-Ray tracing (conditional - only when Active tracing is enabled)
+  dynamic "statement" {
+    for_each = var.xray_tracing_mode == "Active" ? [1] : []
+    content {
+      sid    = "XRayTracing"
+      effect = "Allow"
+      actions = [
+        "xray:PutTraceSegments",
+        "xray:PutTelemetryRecords",
+        "xray:GetSamplingRules",
+        "xray:GetSamplingTargets"
+      ]
+      resources = ["*"]
+    }
   }
 }
 

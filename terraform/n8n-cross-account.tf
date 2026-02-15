@@ -16,7 +16,7 @@
 # -----------------------------------------------------------------------------
 
 locals {
-  n8n_account_id = var.n8n_cross_account_id
+  n8n_account_id  = var.n8n_cross_account_id
   n8n_external_id = var.n8n_external_id != "" ? var.n8n_external_id : "n8n-lambda-${random_id.external_id[0].hex}"
 }
 
@@ -107,10 +107,10 @@ output "n8n_cur_analyst_lambda_arn" {
 output "n8n_configuration_summary" {
   description = "Summary of values needed for n8n AWS Lambda node configuration"
   value = var.n8n_cross_account_id != "" ? {
-    role_arn    = aws_iam_role.n8n_lambda_invoker[0].arn
-    external_id = local.n8n_external_id
-    lambda_arn  = module.mcp_cur_analyst.function_arn
-    region      = var.aws_region
+    role_arn     = aws_iam_role.n8n_lambda_invoker[0].arn
+    external_id  = local.n8n_external_id
+    lambda_arn   = module.mcp_cur_analyst.function_arn
+    region       = var.aws_region
     instructions = <<-EOT
       1. In n8n, create AWS credentials with:
          - Access Key ID: <your-n8n-account-iam-user-access-key>

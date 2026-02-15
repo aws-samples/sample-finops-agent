@@ -27,14 +27,21 @@ data "archive_file" "lambda_zip" {
 
 # CloudWatch Log Group for Lambda
 resource "aws_cloudwatch_log_group" "lambda" {
+  # checkov:skip=CKV_AWS_338:Short retention (7 days) is intentional for cost management - operational logs, not audit logs
   name              = "/aws/lambda/${var.project_name}-proxy"
   retention_in_days = 7
+  kms_key_id        = var.log_group_kms_key_arn
 
   tags = var.tags
 }
 
 # Lambda Function
+# nosemgrep: terraform.aws.security.aws-lambda-x-ray-tracing-not-active.aws-lambda-x-ray-tracing-not-active
 resource "aws_lambda_function" "proxy" {
+  # checkov:skip=CKV_AWS_117:Lambdas call AWS APIs only - VPC would require NAT Gateway with no security benefit
+  # checkov:skip=CKV_AWS_116:Synchronous invocation by AgentCore Gateway - DLQ only applies to async invocations
+  # checkov:skip=CKV_AWS_272:Code packaged from local source via archive_file - code-signing requires CI/CD pipeline
+  # checkov:skip=CKV_AWS_115:Concurrency limits are deployment-specific - set via reserved_concurrent_executions variable
   function_name = "${var.project_name}-proxy"
   description   = "MCP proxy for ${var.project_name} - forwards requests to AgentCore Runtime"
 
@@ -46,6 +53,11 @@ resource "aws_lambda_function" "proxy" {
   role        = aws_iam_role.lambda.arn
   timeout     = var.timeout
   memory_size = var.memory_size
+  kms_key_arn = var.lambda_kms_key_arn
+
+  tracing_config {
+    mode = var.xray_tracing_mode
+  }
 
   environment {
     variables = {

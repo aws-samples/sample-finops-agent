@@ -208,7 +208,7 @@
         <mxCell id="legend-arrow-label" value="= Request flow direction" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=10;" vertex="1" parent="1">
           <mxGeometry x="85" y="480" width="130" height="20" as="geometry" />
         </mxCell>
-        <mxCell id="account-id" value="AWS Account: 028969191743" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=10;fontColor=#666666;" vertex="1" parent="1">
+        <mxCell id="account-id" value="AWS Account: 123456789012" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=10;fontColor=#666666;" vertex="1" parent="1">
           <mxGeometry x="180" y="450" width="150" height="20" as="geometry" />
         </mxCell>
         <mxCell id="region" value="Region: us-east-1" style="text;html=1;strokeColor=none;fillColor=none;align=left;verticalAlign=middle;fontSize=10;fontColor=#666666;" vertex="1" parent="1">

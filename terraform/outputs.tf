@@ -66,10 +66,10 @@ output "mcp_client_config" {
     gateway_endpoint = module.agentcore_gateway.gateway_url
     auth_type        = var.gateway_auth_type
     targets = {
-      proxy          = "${var.project_name}-lambda-target"
-      test           = "test-mcp"
-      cost_explorer  = "cost-explorer-mcp"
-      athena         = "athena-mcp"
+      proxy         = "${var.project_name}-lambda-target"
+      test          = "test-mcp"
+      cost_explorer = "cost-explorer-mcp"
+      athena        = "athena-mcp"
     }
   }
 }

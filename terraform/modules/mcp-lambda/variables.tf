@@ -94,3 +94,30 @@ variable "environment_variables" {
   type        = map(string)
   default     = {}
 }
+
+# -----------------------------------------------------------------------------
+# Security Configuration
+# -----------------------------------------------------------------------------
+
+variable "log_group_kms_key_arn" {
+  description = "ARN of the KMS key to encrypt CloudWatch Log Group. If null, AWS-managed encryption is used."
+  type        = string
+  default     = null
+}
+
+variable "lambda_kms_key_arn" {
+  description = "ARN of the KMS key to encrypt Lambda environment variables at rest. If null, AWS-managed encryption is used."
+  type        = string
+  default     = null
+}
+
+variable "xray_tracing_mode" {
+  description = "X-Ray tracing mode for the Lambda function. Valid values: PassThrough, Active."
+  type        = string
+  default     = "PassThrough"
+
+  validation {
+    condition     = contains(["PassThrough", "Active"], var.xray_tracing_mode)
+    error_message = "xray_tracing_mode must be either 'PassThrough' or 'Active'."
+  }
+}
