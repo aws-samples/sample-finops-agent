@@ -197,3 +197,40 @@ variable "cur_athena_output_location" {
   type        = string
   default     = ""
 }
+
+# -----------------------------------------------------------------------------
+# VPC Configuration
+# -----------------------------------------------------------------------------
+
+variable "enable_vpc" {
+  description = "Place Lambda functions in a VPC with VPC endpoints (no NAT Gateway needed)"
+  type        = bool
+  default     = false
+}
+
+variable "vpc_cidr" {
+  description = "CIDR block for the Lambda VPC (only used when enable_vpc = true)"
+  type        = string
+  default     = "10.0.0.0/24"
+}
+
+# -----------------------------------------------------------------------------
+# Lambda Security Configuration
+# -----------------------------------------------------------------------------
+
+variable "lambda_reserved_concurrent_executions" {
+  description = "Reserved concurrent executions for Lambda functions"
+  type        = number
+  default     = 10
+}
+
+variable "log_retention_in_days" {
+  description = "CloudWatch Log Group retention in days (365+ recommended for compliance)"
+  type        = number
+  default     = 365
+
+  validation {
+    condition     = contains([0, 1, 3, 5, 7, 14, 30, 60, 90, 120, 150, 180, 365, 400, 545, 731, 1096, 1827, 2192, 2557, 2922, 3288, 3653], var.log_retention_in_days)
+    error_message = "log_retention_in_days must be a valid CloudWatch retention value."
+  }
+}

@@ -64,6 +64,21 @@ data "aws_iam_policy_document" "lambda_permissions" {
       resources = ["*"]
     }
   }
+
+  # VPC ENI management (conditional - only when VPC is configured)
+  dynamic "statement" {
+    for_each = length(var.subnet_ids) > 0 ? [1] : []
+    content {
+      sid    = "VPCNetworkInterface"
+      effect = "Allow"
+      actions = [
+        "ec2:CreateNetworkInterface",
+        "ec2:DescribeNetworkInterfaces",
+        "ec2:DeleteNetworkInterface"
+      ]
+      resources = ["*"]
+    }
+  }
 }
 
 resource "aws_iam_role_policy" "lambda_permissions" {

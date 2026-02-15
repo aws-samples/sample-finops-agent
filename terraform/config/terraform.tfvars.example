@@ -70,6 +70,22 @@ cur_table_name = "mycostexport"
 cur_athena_output_location = ""
 
 # -----------------------------------------------------------------------------
+# VPC & Security Configuration
+# -----------------------------------------------------------------------------
+
+# Place Lambda functions in a VPC with VPC endpoints (no NAT Gateway needed)
+enable_vpc = true
+
+# CIDR block for the Lambda VPC (only used when enable_vpc = true)
+# vpc_cidr = "10.0.0.0/24"
+
+# Reserved concurrent executions for Lambda functions
+# lambda_reserved_concurrent_executions = 10
+
+# CloudWatch Log Group retention in days (365+ recommended for compliance)
+# log_retention_in_days = 365
+
+# -----------------------------------------------------------------------------
 # Optional Configuration
 # -----------------------------------------------------------------------------
 
