@@ -59,6 +59,8 @@ data "aws_iam_policy_document" "cross_account_trust" {
 
 # Combined permissions policy
 data "aws_iam_policy_document" "cross_account_permissions" {
+  # checkov:skip=CKV_AWS_111:Athena requires write access (StartQueryExecution, S3 PutObject) for query results - scoped to CUR bucket
+  # checkov:skip=CKV_AWS_356:Cost Explorer, Athena, and Glue read APIs do not support resource-level permissions (AWS limitation)
   count = var.management_account_profile != "" ? 1 : 0
 
   # Cost Explorer - Read-only access for cost analysis
