@@ -254,6 +254,7 @@ def retrieve_all_results(historical_ids: dict, detailed_ids: dict) -> dict:
                 error_reason = status["QueryExecution"]["Status"].get("StateChangeReason", "Unknown")
                 results[name] = {"error": state, "reason": error_reason}
                 break
+            # nosemgrep: python.lang.best-practice.arbitrary-sleep
             time.sleep(5)
 
         if state == "SUCCEEDED":

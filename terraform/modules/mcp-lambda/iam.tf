@@ -84,30 +84,13 @@ data "aws_iam_policy_document" "lambda_xray" {
   }
 }
 
-# VPC ENI management permission (conditional - only when VPC is configured)
-data "aws_iam_policy_document" "lambda_vpc" {
-  count = length(var.subnet_ids) > 0 ? 1 : 0
-
-  statement {
-    sid    = "VPCNetworkInterface"
-    effect = "Allow"
-    actions = [
-      "ec2:CreateNetworkInterface",
-      "ec2:DescribeNetworkInterfaces",
-      "ec2:DeleteNetworkInterface"
-    ]
-    resources = ["*"]
-  }
-}
-
-# Combine base, custom, cross-account, X-Ray, and VPC policies
+# Combine base, custom, cross-account, and X-Ray policies
 data "aws_iam_policy_document" "lambda_combined" {
   source_policy_documents = concat(
     [data.aws_iam_policy_document.lambda_base.json],
     length(var.iam_policy_statements) > 0 ? [data.aws_iam_policy_document.lambda_custom[0].json] : [],
     var.cross_account_enabled ? [data.aws_iam_policy_document.lambda_cross_account[0].json] : [],
-    var.xray_tracing_mode == "Active" ? [data.aws_iam_policy_document.lambda_xray[0].json] : [],
-    length(var.subnet_ids) > 0 ? [data.aws_iam_policy_document.lambda_vpc[0].json] : []
+    var.xray_tracing_mode == "Active" ? [data.aws_iam_policy_document.lambda_xray[0].json] : []
   )
 }
 
@@ -115,4 +98,11 @@ resource "aws_iam_role_policy" "lambda_permissions" {
   name   = "${var.project_name}-${var.server_name}-mcp-policy"
   role   = aws_iam_role.lambda.id
   policy = data.aws_iam_policy_document.lambda_combined.json
+}
+
+# VPC ENI management - AWS managed policy (conditional)
+resource "aws_iam_role_policy_attachment" "lambda_vpc" {
+  count      = length(var.subnet_ids) > 0 ? 1 : 0
+  role       = aws_iam_role.lambda.name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole"
 }
