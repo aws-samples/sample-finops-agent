@@ -137,6 +137,15 @@ cur_athena_output_location = ""                     # Optional: S3 path for Athe
                                                     # Defaults to s3://{cur_bucket}/athena-results/
 ```
 
+> **Important: Verify your Athena table covers all billing periods.** CUR 2.0 exports store data in Hive-style partitioned folders (e.g., `s3://{bucket}/.../data/BILLING_PERIOD=2025-12/`). Some Glue Crawlers set the table location to a specific billing period instead of the parent `data/` directory, which causes Athena to only return that single month. Verify by running:
+> ```sql
+> SELECT DISTINCT billing_period FROM your_database.your_table ORDER BY billing_period;
+> ```
+> If only one month appears, update the table location to the parent path:
+> ```sql
+> ALTER TABLE your_database.your_table SET LOCATION 's3://your-cur-bucket/.../data/';
+> ```
+
 **Other settings:**
 
 ```hcl
