@@ -141,6 +141,16 @@ cur_athena_output_location = ""                     # Optional: S3 path for Athe
 
 ```hcl
 project_name      = "finops-mcp"           # Prefix for all resources (optional)
+
+# VPC: places Lambdas in a VPC with private subnets and 7 VPC endpoints
+# (S3, STS, Logs, Athena, Glue, Cost Explorer, Bedrock AgentCore)
+# No NAT Gateway needed — all AWS API traffic goes through VPC endpoints
+enable_vpc        = true                   # Default: false
+# vpc_cidr        = "10.0.0.0/24"         # Default: "10.0.0.0/24"
+
+# Lambda concurrency and log retention
+# lambda_reserved_concurrent_executions = 10   # Default: 10
+# log_retention_in_days                 = 365  # Default: 365
 ```
 
 See [Configuration](docs/configuration.md) for all options.
