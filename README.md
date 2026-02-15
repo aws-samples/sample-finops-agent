@@ -4,30 +4,7 @@ An MCP-enabled agent for Cloud Financial Management (CFM) that provides secure a
 
 ## Architecture
 
-```
-┌──────────────┐                 ┌─────────────────────────────────────────────────────────────────────────┐
-│  MCP Client  │  Federate JWT   │                              AWS Cloud                                  │
-│              │────────────────>│                                                                         │
-│ Claude Code  │                 │  ┌─────────────┐       ┌──────────────────────────────────────────────┐ │
-│  QuickSuite  │<────────────────│  │  AgentCore  │       │  Lambda Targets                              │ │
-│              │                 │  │   Gateway   │       │                                              │ │
-└──────────────┘                 │  │             │──────>│  cost-explorer-mcp ───> Cost Explorer API    │ │
-                                 │  │             │       │  athena-mcp ──────────> Athena + S3 + Glue   │ │
-                                 │  │             │       │  cur-analyst-mcp ─────> Cost Explorer +      │ │
-                                 │  │             │       │                         Athena CUR 2.0       │ │
-                                 │  │             │       │                                              │ │
-                                 │  │             │       │  lambda-proxy ────────────────┐              │ │
-                                 │  └─────────────┘       └───────────────────────────────┼──────────────┘ │
-                                 │                                                        │                │
-                                 │                                                        v                │
-                                 │                        ┌──────────────────────────────────────────────┐ │
-                                 │                        │  AgentCore Runtime                           │ │
-                                 │                        │  (aws-api-mcp-server from AWS Marketplace)   │ │
-                                 │                        │                                              │ │
-                                 │                        │  Tools: call_aws, suggest_aws_commands       │ │
-                                 │                        └──────────────────────────────────────────────┘ │
-                                 └─────────────────────────────────────────────────────────────────────────┘
-```
+![Architecture Diagram](docs/images/architecture-diagram.png)
 
 All Gateway targets are **Lambda functions**. The `lambda-proxy` Lambda forwards requests to the AgentCore Runtime which hosts the aws-api-mcp-server container.
 
