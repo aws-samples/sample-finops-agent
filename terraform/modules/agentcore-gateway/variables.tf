@@ -27,13 +27,13 @@ variable "auth_type" {
 variable "jwt_discovery_url" {
   description = "OIDC discovery URL for JWT validation (e.g., Federate)"
   type        = string
-  default     = "https://idp-integ.federate.amazon.com/.well-known/openid-configuration"
+  default     = ""
 }
 
 variable "jwt_allowed_audiences" {
   description = "List of allowed JWT audiences"
   type        = list(string)
-  default     = ["mcp-federate-integ-es"]
+  default     = []
 }
 
 variable "jwt_allowed_clients" {

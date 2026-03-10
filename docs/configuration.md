@@ -51,9 +51,9 @@ lambda_memory_size = 256
 # Gateway authentication: CUSTOM_JWT (Federate), AWS_IAM, or NONE
 gateway_auth_type = "CUSTOM_JWT"
 
-# Federate JWT Configuration (required when gateway_auth_type = CUSTOM_JWT)
-jwt_discovery_url     = "https://idp-integ.federate.amazon.com/.well-known/openid-configuration"
-jwt_allowed_audiences = ["mcp-federate-integ-es"]
+# JWT Configuration (required when gateway_auth_type = CUSTOM_JWT)
+jwt_discovery_url     = "https://your-idp.example.com/.well-known/openid-configuration"
+jwt_allowed_audiences = ["your-audience-id"]
 jwt_allowed_clients   = []  # Empty = allow all clients
 
 # Runtime permissions (what AWS APIs the MCP server can access)
@@ -69,14 +69,14 @@ tags = {
 
 ## Authentication Options
 
-### CUSTOM_JWT (Federate) - Recommended
+### CUSTOM_JWT - Recommended
 
-Uses Amazon Federate for JWT-based authentication.
+Uses an OIDC-compliant identity provider for JWT-based authentication.
 
 ```hcl
 gateway_auth_type     = "CUSTOM_JWT"
-jwt_discovery_url     = "https://idp-integ.federate.amazon.com/.well-known/openid-configuration"
-jwt_allowed_audiences = ["mcp-federate-integ-es"]
+jwt_discovery_url     = "https://your-idp.example.com/.well-known/openid-configuration"
+jwt_allowed_audiences = ["your-audience-id"]
 ```
 
 ### AWS_IAM

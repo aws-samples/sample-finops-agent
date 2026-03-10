@@ -114,7 +114,7 @@ variable "lambda_kms_key_arn" {
 variable "xray_tracing_mode" {
   description = "X-Ray tracing mode for the Lambda function. Valid values: PassThrough, Active."
   type        = string
-  default     = "PassThrough"
+  default     = "Active"
 
   validation {
     condition     = contains(["PassThrough", "Active"], var.xray_tracing_mode)

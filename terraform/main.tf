@@ -73,6 +73,7 @@ module "lambda_proxy" {
   security_group_ids             = var.enable_vpc ? [module.vpc[0].lambda_security_group_id] : []
   reserved_concurrent_executions = var.lambda_reserved_concurrent_executions
   log_retention_in_days          = var.log_retention_in_days
+  lambda_kms_key_arn             = var.lambda_kms_key_arn
 
   tags = local.common_tags
 
@@ -104,6 +105,7 @@ module "mcp_test" {
   security_group_ids             = var.enable_vpc ? [module.vpc[0].lambda_security_group_id] : []
   reserved_concurrent_executions = var.lambda_reserved_concurrent_executions
   log_retention_in_days          = var.log_retention_in_days
+  lambda_kms_key_arn             = var.lambda_kms_key_arn
 
   tags = local.common_tags
 }
@@ -143,6 +145,7 @@ module "mcp_cost_explorer" {
   security_group_ids             = var.enable_vpc ? [module.vpc[0].lambda_security_group_id] : []
   reserved_concurrent_executions = var.lambda_reserved_concurrent_executions
   log_retention_in_days          = var.log_retention_in_days
+  lambda_kms_key_arn             = var.lambda_kms_key_arn
 
   tags = local.common_tags
 }
@@ -212,6 +215,7 @@ module "mcp_athena" {
   security_group_ids             = var.enable_vpc ? [module.vpc[0].lambda_security_group_id] : []
   reserved_concurrent_executions = var.lambda_reserved_concurrent_executions
   log_retention_in_days          = var.log_retention_in_days
+  lambda_kms_key_arn             = var.lambda_kms_key_arn
 
   tags = local.common_tags
 }
@@ -299,6 +303,7 @@ module "mcp_cur_analyst" {
   security_group_ids             = var.enable_vpc ? [module.vpc[0].lambda_security_group_id] : []
   reserved_concurrent_executions = var.lambda_reserved_concurrent_executions
   log_retention_in_days          = var.log_retention_in_days
+  lambda_kms_key_arn             = var.lambda_kms_key_arn
 
   tags = local.common_tags
 }

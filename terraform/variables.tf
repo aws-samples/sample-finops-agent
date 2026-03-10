@@ -79,13 +79,13 @@ variable "gateway_auth_type" {
 variable "jwt_discovery_url" {
   description = "OIDC discovery URL for JWT validation (Amazon Federate)"
   type        = string
-  default     = "https://idp-integ.federate.amazon.com/.well-known/openid-configuration"
+  default     = ""
 }
 
 variable "jwt_allowed_audiences" {
   description = "List of allowed JWT audiences for gateway authentication"
   type        = list(string)
-  default     = ["mcp-federate-integ-es"]
+  default     = []
 }
 
 variable "jwt_allowed_clients" {
@@ -233,4 +233,10 @@ variable "log_retention_in_days" {
     condition     = contains([0, 1, 3, 5, 7, 14, 30, 60, 90, 120, 150, 180, 365, 400, 545, 731, 1096, 1827, 2192, 2557, 2922, 3288, 3653], var.log_retention_in_days)
     error_message = "log_retention_in_days must be a valid CloudWatch retention value."
   }
+}
+
+variable "lambda_kms_key_arn" {
+  description = "ARN of KMS key to encrypt Lambda environment variables. If null, AWS managed encryption is used."
+  type        = string
+  default     = null
 }

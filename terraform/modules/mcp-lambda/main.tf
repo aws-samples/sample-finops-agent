@@ -144,7 +144,6 @@ locals {
   )
 }
 
-# nosemgrep: terraform.aws.security.aws-lambda-x-ray-tracing-not-active.aws-lambda-x-ray-tracing-not-active
 resource "aws_lambda_function" "mcp" {
   # checkov:skip=CKV_AWS_116:Synchronous invocation by AgentCore Gateway - DLQ only applies to async invocations
   # checkov:skip=CKV_AWS_272:Code packaged from local source via archive_file - code-signing requires CI/CD pipeline

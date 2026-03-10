@@ -2,7 +2,7 @@
 
 ## Overview
 
-The FinOps MCP Gateway deploys an Amazon Bedrock AgentCore Gateway that exposes MCP (Model Context Protocol) endpoints for Cloud Financial Management (CFM). This gateway provides MCP clients secure access to AWS APIs through multiple Lambda-based targets.
+The FinOps MCP Gateway deploys an Amazon Bedrock AgentCore Gateway that exposes MCP (Model Context Protocol) endpoints for Cloud Financial Management (CFM). This gateway provides MCP clients secure access to AWS APIs through multiple AWS Lambda-based targets. It integrates with Amazon Athena, AWS Cost Explorer, AWS Glue, Amazon S3, and Amazon CloudWatch.
 
 ## Architecture Diagram
 
@@ -137,7 +137,37 @@ aws-finops-mcp-gateway/
 
 ## Security Model
 
-- **Authentication**: CUSTOM_JWT with Amazon Federate validates user identity
-- **Authorization**: IAM roles scope what each Lambda can access
-- **Least Privilege**: Default ReadOnlyAccess with specific write permissions only where needed
-- **Audit**: All Lambda invocations logged to CloudWatch
+For full security documentation, see [SECURITY.md](../SECURITY.md).
+
+### Authentication & Authorization
+
+- **Authentication**: CUSTOM_JWT with an OIDC-compliant identity provider validates user identity via JWT tokens at the AgentCore Gateway
+- **Authorization**: Each Lambda function has a dedicated IAM role scoped to only the AWS services it needs
+- **Least Privilege**: AgentCore Runtime uses ReadOnlyAccess by default; write permissions are granted only where required (Athena query results to S3)
+- **Cross-Account**: STS AssumeRole with auto-generated External ID secures cross-account access to management account resources
+
+### Network Security
+
+- **VPC Deployment** (optional): Lambda functions run in private subnets with no internet access. All AWS API traffic routes through VPC endpoints (S3, STS, CloudWatch Logs, Athena, Glue, Cost Explorer, Bedrock AgentCore)
+- **Security Groups**: Restrict traffic to HTTPS (port 443) only, limited to VPC endpoint communication
+
+### Data Protection
+
+- **Encryption in Transit**: All AWS API calls use TLS. VPC endpoints enforce private connectivity when VPC mode is enabled
+- **Encryption at Rest**: Optional KMS encryption for Lambda environment variables and CloudWatch Log Groups. S3 buckets should use SSE-S3 or SSE-KMS (deployer responsibility)
+
+### Monitoring & Audit
+
+- **CloudWatch Logs**: All Lambda invocations logged with 365-day retention (configurable)
+- **AWS X-Ray**: Active tracing enabled by default for end-to-end request tracing
+- **Concurrency Limits**: Lambda functions have reserved concurrent execution limits (default: 10) to prevent runaway invocations
+
+### Threat Considerations
+
+| Threat | Mitigation |
+|--------|------------|
+| Unauthenticated access | JWT validation at AgentCore Gateway; AWS_IAM (SigV4) as alternative |
+| Privilege escalation | Dedicated IAM roles per Lambda; no admin permissions; read-only by default |
+| Data exfiltration | VPC with no internet egress (when enabled); S3 access scoped to CUR bucket |
+| Cross-account abuse | External ID on AssumeRole; role trust policy restricted to specific account |
+| Excessive invocations | Reserved concurrency limits on all Lambda functions |
