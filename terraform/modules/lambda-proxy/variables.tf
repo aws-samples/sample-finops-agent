@@ -54,10 +54,38 @@ variable "lambda_kms_key_arn" {
 variable "xray_tracing_mode" {
   description = "X-Ray tracing mode for the Lambda function. Valid values: PassThrough, Active."
   type        = string
-  default     = "PassThrough"
+  default     = "Active"
 
   validation {
     condition     = contains(["PassThrough", "Active"], var.xray_tracing_mode)
     error_message = "xray_tracing_mode must be either 'PassThrough' or 'Active'."
   }
+}
+
+# -----------------------------------------------------------------------------
+# VPC Configuration
+# -----------------------------------------------------------------------------
+
+variable "subnet_ids" {
+  description = "Subnet IDs for Lambda VPC configuration. Empty list disables VPC placement."
+  type        = list(string)
+  default     = []
+}
+
+variable "security_group_ids" {
+  description = "Security group IDs for Lambda VPC configuration"
+  type        = list(string)
+  default     = []
+}
+
+variable "reserved_concurrent_executions" {
+  description = "Reserved concurrent executions for the Lambda function. Set to -1 to remove limit."
+  type        = number
+  default     = 10
+}
+
+variable "log_retention_in_days" {
+  description = "CloudWatch Log Group retention in days"
+  type        = number
+  default     = 365
 }

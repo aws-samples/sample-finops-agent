@@ -99,3 +99,10 @@ resource "aws_iam_role_policy" "lambda_permissions" {
   role   = aws_iam_role.lambda.id
   policy = data.aws_iam_policy_document.lambda_combined.json
 }
+
+# VPC ENI management - AWS managed policy (conditional)
+resource "aws_iam_role_policy_attachment" "lambda_vpc" {
+  count      = length(var.subnet_ids) > 0 ? 1 : 0
+  role       = aws_iam_role.lambda.name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole"
+}

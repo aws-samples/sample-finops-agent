@@ -29,6 +29,20 @@ locals {
 }
 
 # -----------------------------------------------------------------------------
+# VPC for Lambda Functions (conditional)
+# -----------------------------------------------------------------------------
+module "vpc" {
+  count  = var.enable_vpc ? 1 : 0
+  source = "./modules/vpc"
+
+  project_name = var.project_name
+  aws_region   = var.aws_region
+  vpc_cidr     = var.vpc_cidr
+
+  tags = local.common_tags
+}
+
+# -----------------------------------------------------------------------------
 # Module 1: AgentCore Runtime (MCP Server)
 # -----------------------------------------------------------------------------
 module "agentcore_runtime" {
@@ -54,6 +68,13 @@ module "lambda_proxy" {
   timeout      = var.lambda_timeout
   memory_size  = var.lambda_memory_size
 
+  # Security
+  subnet_ids                     = var.enable_vpc ? module.vpc[0].private_subnet_ids : []
+  security_group_ids             = var.enable_vpc ? [module.vpc[0].lambda_security_group_id] : []
+  reserved_concurrent_executions = var.lambda_reserved_concurrent_executions
+  log_retention_in_days          = var.log_retention_in_days
+  lambda_kms_key_arn             = var.lambda_kms_key_arn
+
   tags = local.common_tags
 
   depends_on = [module.agentcore_runtime]
@@ -78,6 +99,13 @@ module "mcp_test" {
 
   # No special permissions needed for test tools
   iam_policy_statements = []
+
+  # Security
+  subnet_ids                     = var.enable_vpc ? module.vpc[0].private_subnet_ids : []
+  security_group_ids             = var.enable_vpc ? [module.vpc[0].lambda_security_group_id] : []
+  reserved_concurrent_executions = var.lambda_reserved_concurrent_executions
+  log_retention_in_days          = var.log_retention_in_days
+  lambda_kms_key_arn             = var.lambda_kms_key_arn
 
   tags = local.common_tags
 }
@@ -111,6 +139,13 @@ module "mcp_cost_explorer" {
       resources = ["*"]
     }
   ]
+
+  # Security
+  subnet_ids                     = var.enable_vpc ? module.vpc[0].private_subnet_ids : []
+  security_group_ids             = var.enable_vpc ? [module.vpc[0].lambda_security_group_id] : []
+  reserved_concurrent_executions = var.lambda_reserved_concurrent_executions
+  log_retention_in_days          = var.log_retention_in_days
+  lambda_kms_key_arn             = var.lambda_kms_key_arn
 
   tags = local.common_tags
 }
@@ -174,6 +209,13 @@ module "mcp_athena" {
       resources = ["*"]
     }
   ]
+
+  # Security
+  subnet_ids                     = var.enable_vpc ? module.vpc[0].private_subnet_ids : []
+  security_group_ids             = var.enable_vpc ? [module.vpc[0].lambda_security_group_id] : []
+  reserved_concurrent_executions = var.lambda_reserved_concurrent_executions
+  log_retention_in_days          = var.log_retention_in_days
+  lambda_kms_key_arn             = var.lambda_kms_key_arn
 
   tags = local.common_tags
 }
@@ -255,6 +297,13 @@ module "mcp_cur_analyst" {
       resources = ["*"]
     }
   ]
+
+  # Security
+  subnet_ids                     = var.enable_vpc ? module.vpc[0].private_subnet_ids : []
+  security_group_ids             = var.enable_vpc ? [module.vpc[0].lambda_security_group_id] : []
+  reserved_concurrent_executions = var.lambda_reserved_concurrent_executions
+  log_retention_in_days          = var.log_retention_in_days
+  lambda_kms_key_arn             = var.lambda_kms_key_arn
 
   tags = local.common_tags
 }

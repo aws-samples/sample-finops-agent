@@ -39,8 +39,8 @@ lambda_memory_size = 256
 gateway_auth_type = "CUSTOM_JWT"
 
 # Federate JWT Configuration (required when gateway_auth_type = CUSTOM_JWT)
-jwt_discovery_url     = "https://idp-integ.federate.amazon.com/.well-known/openid-configuration"
-jwt_allowed_audiences = ["mcp-federate-integ-es"]
+jwt_discovery_url     = "https://your-idp.example.com/.well-known/openid-configuration"
+jwt_allowed_audiences = ["your-audience-id"]
 jwt_allowed_clients   = []  # Empty = allow all clients
 
 # -----------------------------------------------------------------------------
@@ -68,6 +68,26 @@ cur_table_name = "mycostexport"
 # S3 location for Athena query results (optional)
 # If empty, defaults to s3://{cur_bucket_name}/athena-results/
 cur_athena_output_location = ""
+
+# -----------------------------------------------------------------------------
+# VPC & Security Configuration
+# -----------------------------------------------------------------------------
+
+# Place Lambda functions in a VPC with VPC endpoints (no NAT Gateway needed)
+enable_vpc = true
+
+# CIDR block for the Lambda VPC (only used when enable_vpc = true)
+# vpc_cidr = "10.0.0.0/24"
+
+# Reserved concurrent executions for Lambda functions
+# lambda_reserved_concurrent_executions = 10
+
+# CloudWatch Log Group retention in days (365+ recommended for compliance)
+# log_retention_in_days = 365
+
+# KMS key ARN for Lambda environment variable encryption (optional)
+# If not set, AWS managed encryption is used
+# lambda_kms_key_arn = "arn:aws:kms:us-east-1:123456789012:key/your-key-id"
 
 # -----------------------------------------------------------------------------
 # Optional Configuration

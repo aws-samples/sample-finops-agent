@@ -1,6 +1,6 @@
 # AWS FinOps Agent
 
-An MCP-enabled agent for Cloud Financial Management (CFM) that provides secure access to AWS Cost Explorer, Athena CUR 2.0, and AWS APIs. Deploys on Amazon Bedrock AgentCore and integrates with MCP clients like QuickSuite and Claude Code.
+An MCP-enabled agent for Cloud Financial Management (CFM) that provides secure access to AWS Cost Explorer, Amazon Athena CUR 2.0, and AWS APIs. Deploys on Amazon Bedrock AgentCore with AWS Lambda functions and integrates with MCP clients like QuickSuite and Claude Code.
 
 ## Architecture
 
@@ -45,7 +45,7 @@ A single `make deploy` creates resources in both accounts. For cross-account, Te
 
 This deploys the AWS FinOps Agent infrastructure:
 - AgentCore Gateway with JWT authentication
-- Lambda functions (cost-explorer-mcp, athena-mcp, cur-analyst-mcp, lambda-proxy)
+- AWS Lambda functions (cost-explorer-mcp, athena-mcp, cur-analyst-mcp, lambda-proxy)
 - IAM roles and policies (including cross-account role if configured)
 - AgentCore Runtime (aws-api-mcp-server container)
 
@@ -114,10 +114,29 @@ cur_athena_output_location = ""                     # Optional: S3 path for Athe
                                                     # Defaults to s3://{cur_bucket}/athena-results/
 ```
 
+> **Important: Verify your Athena table covers all billing periods.** CUR 2.0 exports store data in Hive-style partitioned folders (e.g., `s3://{bucket}/.../data/BILLING_PERIOD=2025-12/`). Some Glue Crawlers set the table location to a specific billing period instead of the parent `data/` directory, which causes Athena to only return that single month. Verify by running:
+> ```sql
+> SELECT DISTINCT billing_period FROM your_database.your_table ORDER BY billing_period;
+> ```
+> If only one month appears, update the table location to the parent path:
+> ```sql
+> ALTER TABLE your_database.your_table SET LOCATION 's3://your-cur-bucket/.../data/';
+> ```
+
 **Other settings:**
 
 ```hcl
 project_name      = "finops-mcp"           # Prefix for all resources (optional)
+
+# VPC: places Lambdas in a VPC with private subnets and 7 VPC endpoints
+# (S3, STS, Logs, Athena, Glue, Cost Explorer, Bedrock AgentCore)
+# No NAT Gateway needed — all AWS API traffic goes through VPC endpoints
+enable_vpc        = true                   # Default: false
+# vpc_cidr        = "10.0.0.0/24"         # Default: "10.0.0.0/24"
+
+# Lambda concurrency and log retention
+# lambda_reserved_concurrent_executions = 10   # Default: 10
+# log_retention_in_days                 = 365  # Default: 365
 ```
 
 See [Configuration](docs/configuration.md) for all options.
@@ -137,19 +156,19 @@ QuickSuite connects to AgentCore Gateway using OAuth. You'll need these credenti
 | Token URL         | Endpoint to exchange credentials for tokens |
 | Authorization URL | Endpoint for user authorization             |
 
-### Amazon Federate (Internal Example)
+### OIDC Provider Example
 
-1. Go to [Amazon Federate](https://idp.federate.amazon.com) and create a **Service Profile**
+1. Register an OAuth application in your OIDC-compliant identity provider
 2. Configure OAuth grant type (e.g., Client Credentials)
 3. Note down Client ID, Client Secret, and Discovery URL
 4. Update `terraform/config/terraform.tfvars`:
    ```hcl
    gateway_auth_type     = "CUSTOM_JWT"
-   jwt_discovery_url     = "https://idp.federate.amazon.com/.well-known/openid-configuration"
-   jwt_allowed_audiences = ["your-service-profile-name"]
+   jwt_discovery_url     = "https://your-idp.example.com/.well-known/openid-configuration"
+   jwt_allowed_audiences = ["your-audience-id"]
    ```
 
-### Other Identity Providers
+### Supported Identity Providers
 
 Any OIDC-compliant IdP works. Update `jwt_discovery_url` and `jwt_allowed_audiences` accordingly:
 
@@ -174,6 +193,7 @@ After deployment, configure your MCP client (QuickSuite) to connect to the gatew
 
 | Guide                                                    | Description                                          |
 | -------------------------------------------------------- | ---------------------------------------------------- |
+| [Security](SECURITY.md)                                  | Security controls, shared responsibility, IAM design |
 | [Architecture](docs/architecture.md)                     | Detailed architecture, components, project structure |
 | [MCP Tools Reference](docs/mcp-tools-reference.md)       | All 17 MCP tools by target                           |
 | [Configuration](docs/configuration.md)                   | tfvars, permissions, make commands                   |
