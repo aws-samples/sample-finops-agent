@@ -17,22 +17,29 @@ AWS_PROFILE = os.environ.get("AWS_PROFILE", "default")
 
 def invoke_mcp_lambda(function_name: str, target_name: str, tool_name: str, payload: dict) -> dict:
     """Invoke an MCP Lambda function with the proper client context."""
-    session = boto3.Session(profile_name=AWS_PROFILE)
-    client = session.client("lambda", region_name=AWS_REGION)
+    try:
+        session = boto3.Session(profile_name=AWS_PROFILE)
+        client = session.client("lambda", region_name=AWS_REGION)
 
-    # Create client context with tool name (format: target___tool)
-    client_context = {"custom": {"bedrockAgentCoreToolName": f"{target_name}___{tool_name}"}}
-    client_context_b64 = base64.b64encode(json.dumps(client_context).encode()).decode()
+        # Create client context with tool name (format: target___tool)
+        client_context = {"custom": {"bedrockAgentCoreToolName": f"{target_name}___{tool_name}"}}
+        client_context_b64 = base64.b64encode(json.dumps(client_context).encode()).decode()
 
-    response = client.invoke(
-        FunctionName=function_name,
-        InvocationType="RequestResponse",
-        Payload=json.dumps(payload),
-        ClientContext=client_context_b64,
-    )
+        response = client.invoke(
+            FunctionName=function_name,
+            InvocationType="RequestResponse",
+            Payload=json.dumps(payload),
+            ClientContext=client_context_b64,
+        )
 
-    response_payload = json.loads(response["Payload"].read().decode("utf-8"))
-    return response_payload
+        response_payload = json.loads(response["Payload"].read().decode("utf-8"))
+        return response_payload
+    except boto3.exceptions.Boto3Error as e:
+        print(f"AWS error invoking {function_name}: {e}")
+        raise
+    except json.JSONDecodeError as e:
+        print(f"Failed to parse response from {function_name}: {e}")
+        raise
 
 
 def test_test_mcp():
@@ -90,12 +97,21 @@ def main():
     print("MCP Lambda Health Check")
     print("=" * 60)
 
-    test_test_mcp()
-    test_cost_explorer_mcp()
-    test_athena_mcp()
+    failures = []
+    for test_fn in [test_test_mcp, test_cost_explorer_mcp, test_athena_mcp]:
+        try:
+            test_fn()
+        except Exception as e:
+            failures.append(f"{test_fn.__name__}: {e}")
+            print(f"\nFAILED: {test_fn.__name__}: {e}")
 
     print("\n" + "=" * 60)
-    print("All tests completed!")
+    if failures:
+        print(f"Completed with {len(failures)} failure(s):")
+        for f in failures:
+            print(f"  - {f}")
+    else:
+        print("All tests completed successfully!")
     print("=" * 60)
 
 

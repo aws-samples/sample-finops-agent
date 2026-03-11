@@ -195,7 +195,12 @@ module "mcp_athena" {
         "s3:AbortMultipartUpload",
         "s3:ListMultipartUploadParts"
       ]
-      resources = ["arn:aws:s3:::*"]
+      resources = [
+        "arn:aws:s3:::${var.cur_bucket_name}",
+        "arn:aws:s3:::${var.cur_bucket_name}/*",
+        "arn:aws:s3:::*-athena-results",
+        "arn:aws:s3:::*-athena-results/*"
+      ]
     },
     {
       actions = [

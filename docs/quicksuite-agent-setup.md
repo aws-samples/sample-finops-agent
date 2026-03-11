@@ -8,6 +8,18 @@ This guide walks through setting up a Cloud Financial Management (CFM) agent in 
 - Identity Provider (IdP) configured with OAuth credentials
 - Gateway endpoint URL (from `make output`)
 
+## Security Considerations
+
+This integration follows the [AWS Shared Responsibility Model](https://aws.amazon.com/compliance/shared-responsibility-model/). You are responsible for:
+
+- **OAuth credentials**: Store client secrets securely (e.g., AWS Secrets Manager). Never commit secrets to source control.
+- **Token scopes**: Configure your IdP to issue tokens with minimum required scopes.
+- **Gateway authentication**: Ensure `gateway_auth_type = "CUSTOM_JWT"` is set in production. Never use `NONE`.
+- **Audit**: Monitor AgentCore Gateway access via CloudWatch Logs.
+- **Third-party services**: QuickSuite ([quicksuite.ai](https://quicksuite.ai)) is the MCP client used in this guide. Verify that your organization's policies permit use of this service and that any data processing agreements are in place before configuring it with your AWS cost data.
+
+For full security documentation, see [SECURITY.md](../SECURITY.md).
+
 ## Step 1: Create QuickSuite Account
 
 1. Navigate to [QuickSuite](https://quicksuite.ai) in the **data collection account** (same account where the gateway is deployed)

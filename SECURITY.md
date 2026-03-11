@@ -35,7 +35,7 @@ Each component has a dedicated IAM role following least-privilege principles:
 | AgentCore Runtime | `{project}-runtime-role` | ReadOnlyAccess (configurable), X-Ray, CloudWatch Logs |
 | Lambda Proxy | `{project}-lambda-role` | InvokeAgentRuntime (scoped to runtime ARN), X-Ray, CloudWatch Logs |
 | Cost Explorer MCP | `{project}-cost-explorer-mcp-role` | ce:Get* (4 actions), CloudWatch Logs |
-| Athena MCP | `{project}-athena-mcp-role` | athena:* (12 actions), s3:*, glue:Get* (6 actions), CloudWatch Logs |
+| Athena MCP | `{project}-athena-mcp-role` | athena:* (12 actions), s3:* (scoped to CUR + Athena results buckets), glue:Get* (6 actions), CloudWatch Logs |
 | CUR Analyst MCP | `{project}-cur-analyst-mcp-role` | ce:Get* (8 actions), athena:* (4 actions), s3:* (scoped to CUR bucket), glue:Get* (6 actions), CloudWatch Logs |
 | Management Account Role | `{project}-management-role` | ce:Get*, athena:*, s3:* (CUR bucket only), glue:Get* |
 
@@ -67,7 +67,7 @@ Cross-account access uses STS AssumeRole with:
 When `enable_vpc = true`:
 
 - Lambda functions run in **private subnets** with no internet gateway or NAT gateway
-- **VPC endpoints** provide private connectivity to AWS services: S3 (gateway), STS, CloudWatch Logs, Athena, Glue, Cost Explorer, Bedrock AgentCore (interface)
+- **VPC endpoints** provide private connectivity to AWS services: S3 (gateway), STS, CloudWatch Logs, Athena, AWS Glue, Cost Explorer, Bedrock AgentCore (interface)
 - **Security groups** restrict traffic to HTTPS (port 443) only
 - **VPC Flow Logs** capture network traffic to CloudWatch Logs
 - **Default security group** denies all traffic (AWS best practice)
@@ -84,7 +84,7 @@ Several IAM policies use `"*"` as the resource. These are AWS service limitation
 |---------|---------|----------------------|
 | AWS Cost Explorer | ce:GetCostAndUsage, ce:GetDimensionValues, ce:GetTags, ce:GetCostForecast, ce:GetSavingsPlansCoverage, ce:GetSavingsPlansUtilization, ce:GetReservationCoverage, ce:GetReservationUtilization | Cost Explorer APIs do not support resource-level permissions ([AWS docs](https://docs.aws.amazon.com/service-authorization/latest/reference/list_awscostexplorerservice.html)) |
 | Amazon Athena | athena:StartQueryExecution, athena:GetQueryExecution, athena:GetQueryResults, etc. | Athena APIs do not support resource-level permissions for most read operations |
-| AWS Glue | glue:GetDatabase, glue:GetDatabases, glue:GetTable, glue:GetTables, glue:GetPartition, glue:GetPartitions | Glue catalog read APIs do not support resource-level permissions |
+| AWS Glue | glue:GetDatabase, glue:GetDatabases, glue:GetTable, glue:GetTables, glue:GetPartition, glue:GetPartitions | AWS Glue catalog read APIs do not support resource-level permissions |
 
 S3 permissions for the CUR Analyst Lambda are scoped to the specific CUR bucket ARN (`arn:aws:s3:::{cur_bucket_name}` and `arn:aws:s3:::{cur_bucket_name}/*`).
 
@@ -106,6 +106,18 @@ S3 permissions for the CUR Analyst Lambda are scoped to the specific CUR bucket 
 
 - **Cost data**: Non-PII financial data (spend amounts, service names, resource IDs). No customer content or personal data flows through the agent.
 - **No training**: Data processed by the agent is not used for model training. Amazon Bedrock AgentCore does not retain customer data.
+
+### Bias and Fairness
+
+The CFM agent aggregates and presents factual AWS cost data (spend amounts, resource counts, usage metrics). It does not make subjective recommendations, score entities, or rank individuals. Cost allocation follows AWS billing data as-is, with no model-driven weighting or interpretation that could introduce bias.
+
+### Third-Party Components
+
+| Component | Source | Status |
+|-----------|--------|--------|
+| aws-api-mcp-server | [AWS Marketplace](https://aws.amazon.com/marketplace/pp/prodview-lqqkwbcraxsgw) | AWS first-party; MIT No Attribution license |
+| Amazon Bedrock AgentCore | AWS Service | AWS managed service |
+| MCP Lambda functions | This repository | Custom code; see [LICENSE](LICENSE) |
 
 ## S3 Security Requirements
 
@@ -135,7 +147,7 @@ The CUR S3 bucket is managed by the deployer. Recommended security configuration
 |-------|----------|---------------|
 | CKV_AWS_116 (DLQ) | All Lambda functions | Synchronous invocation by AgentCore Gateway. DLQ only applies to async invocations. |
 | CKV_AWS_272 (Code Signing) | All Lambda functions | Code packaged from local source via `archive_file`. Code signing requires a CI/CD pipeline with a signing profile. |
-| CKV_AWS_111 (IAM write without constraints) | Management account role | Cost Explorer, Athena, and Glue APIs do not support resource-level permissions. Actions are read-only (Get*/List*). |
+| CKV_AWS_111 (IAM write without constraints) | Management account role | Cost Explorer, Athena, and AWS Glue APIs do not support resource-level permissions. Actions are read-only (Get*/List*). |
 | CKV_AWS_356 (IAM `"*"` resource) | Management account role | Same as above. AWS service limitation documented in IAM policy comments. |
 
 ### Semgrep Skips
@@ -146,14 +158,15 @@ The CUR S3 bucket is managed by the deployer. Recommended security configuration
 
 ## Disclaimer
 
-This project is sample code for demonstration and educational purposes. Before deploying to production:
+This project is sample code for demonstration and educational purposes, licensed under MIT No Attribution (see [LICENSE](LICENSE)). It is **not production-ready without review**. Before deploying to production:
 
-- Review all IAM policies for your security requirements
-- Enable VPC mode for network isolation
-- Configure KMS encryption if required by your organization's policies
-- Ensure your CUR S3 bucket follows S3 security best practices
-- Store Terraform state in an encrypted, access-controlled backend
-- Implement monitoring and alerting for your deployment
+1. **IAM**: Review all IAM policies for your security requirements
+2. **Network**: Enable VPC mode (`enable_vpc = true`) for network isolation
+3. **Encryption**: Configure KMS encryption if required by your organization's policies
+4. **S3**: Ensure your CUR S3 bucket follows S3 security best practices (see [S3 Security Requirements](#s3-security-requirements))
+5. **State**: Store Terraform state in an encrypted, access-controlled S3 backend
+6. **Monitoring**: Implement CloudWatch alarms and log analysis for your deployment
+7. **Authentication**: Configure CUSTOM_JWT with your OIDC identity provider (never deploy with `NONE` in production)
 
 ## Reporting Security Issues
 

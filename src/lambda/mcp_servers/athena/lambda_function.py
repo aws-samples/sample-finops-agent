@@ -51,8 +51,22 @@ Required IAM Permissions:
 """
 
 import json
+import re
 
 import boto3
+
+# Block DDL/DML operations - defense in depth (IAM also restricts write actions)
+BLOCKED_SQL_PATTERNS = re.compile(
+    r"\b(DROP|DELETE|INSERT|UPDATE|CREATE|ALTER|TRUNCATE|MERGE|GRANT|REVOKE|MSCK)\b",
+    re.IGNORECASE,
+)
+
+
+def validate_query(query_string):
+    """Validate SQL query is read-only. Returns (is_valid, error_message)."""
+    if BLOCKED_SQL_PATTERNS.search(query_string):
+        return False, "Only SELECT, SHOW, and DESCRIBE queries are allowed. DDL/DML operations are blocked."
+    return True, None
 
 # Cross-account support - shared module is packaged alongside lambda_function.py
 try:
@@ -118,6 +132,10 @@ def handle_start_query_execution(event):
 
     if not query_string:
         return {"error": "query_string parameter is required"}
+
+    is_valid, error_msg = validate_query(query_string)
+    if not is_valid:
+        return {"error": error_msg}
 
     athena = get_aws_client("athena")
 

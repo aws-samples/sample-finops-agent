@@ -26,7 +26,7 @@ Add your n8n AWS account ID to `terraform/config/.env`:
 ```bash
 # n8n Cross-Account Configuration
 # AWS Account ID where n8n is deployed (enables cross-account Lambda invocation)
-TF_VAR_n8n_cross_account_id=739907928487
+TF_VAR_n8n_cross_account_id=123456789012
 ```
 
 > **Important:** This variable must be set in `.env` for the Makefile to pass it to Terraform. Without it, the n8n cross-account IAM role will not be created (or will be destroyed if it exists).

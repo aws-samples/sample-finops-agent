@@ -25,7 +25,7 @@ Data Collection Account              Management/Payer Account
 │  KPI Dashboard          │         │                         │
 │                         │         │  Cost Explorer API      │
 │  AWS FinOps Agent       │────────>│  CUR S3 Bucket          │
-│  - cost-explorer-mcp    │ Assume  │  Athena/Glue            │
+│  - cost-explorer-mcp    │ Assume  │  Athena/AWS Glue        │
 │  - cur-analyst-mcp      │  Role   │                         │
 │  - athena-mcp           │         │                         │
 └─────────────────────────┘         └─────────────────────────┘
@@ -103,18 +103,18 @@ Terraform variables for project configuration. Created from `terraform.tfvars.ex
 
 **Required: CUR Configuration**
 
-You must configure these variables to match your CUR 2.0 export settings. Find these values in the AWS Cost and Usage Reports console or your Athena/Glue setup:
+You must configure these variables to match your CUR 2.0 export settings. Find these values in the AWS Cost and Usage Reports console or your Athena/AWS Glue setup:
 
 ```hcl
 # CUR (Cost and Usage Report) Configuration - REQUIRED
 cur_bucket_name            = "your-cur-bucket"      # S3 bucket with CUR 2.0 data
-cur_database_name          = "your_cur_database"    # Glue database name (check Athena)
-cur_table_name             = "your_cur_table"       # Glue table name (check Athena)
+cur_database_name          = "your_cur_database"    # AWS Glue database name (check Athena)
+cur_table_name             = "your_cur_table"       # AWS Glue table name (check Athena)
 cur_athena_output_location = ""                     # Optional: S3 path for Athena results
                                                     # Defaults to s3://{cur_bucket}/athena-results/
 ```
 
-> **Important: Verify your Athena table covers all billing periods.** CUR 2.0 exports store data in Hive-style partitioned folders (e.g., `s3://{bucket}/.../data/BILLING_PERIOD=2025-12/`). Some Glue Crawlers set the table location to a specific billing period instead of the parent `data/` directory, which causes Athena to only return that single month. Verify by running:
+> **Important: Verify your Athena table covers all billing periods.** CUR 2.0 exports store data in Hive-style partitioned folders (e.g., `s3://{bucket}/.../data/BILLING_PERIOD=2025-12/`). Some AWS Glue Crawlers set the table location to a specific billing period instead of the parent `data/` directory, which causes Athena to only return that single month. Verify by running:
 > ```sql
 > SELECT DISTINCT billing_period FROM your_database.your_table ORDER BY billing_period;
 > ```
@@ -129,7 +129,7 @@ cur_athena_output_location = ""                     # Optional: S3 path for Athe
 project_name      = "finops-mcp"           # Prefix for all resources (optional)
 
 # VPC: places Lambdas in a VPC with private subnets and 7 VPC endpoints
-# (S3, STS, Logs, Athena, Glue, Cost Explorer, Bedrock AgentCore)
+# (S3, STS, Logs, Athena, AWS Glue, Cost Explorer, Bedrock AgentCore)
 # No NAT Gateway needed — all AWS API traffic goes through VPC endpoints
 enable_vpc        = true                   # Default: false
 # vpc_cidr        = "10.0.0.0/24"         # Default: "10.0.0.0/24"
@@ -193,7 +193,7 @@ After deployment, configure your MCP client (QuickSuite) to connect to the gatew
 
 | Guide                                                    | Description                                          |
 | -------------------------------------------------------- | ---------------------------------------------------- |
-| [Security](SECURITY.md)                                  | Security controls, shared responsibility, IAM design |
+| [Security](SECURITY.md)                                  | Security controls, shared responsibility, IAM design (scanned with Checkov, Semgrep) |
 | [Architecture](docs/architecture.md)                     | Detailed architecture, components, project structure |
 | [MCP Tools Reference](docs/mcp-tools-reference.md)       | All 17 MCP tools by target                           |
 | [Configuration](docs/configuration.md)                   | tfvars, permissions, make commands                   |
