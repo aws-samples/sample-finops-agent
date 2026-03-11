@@ -40,7 +40,7 @@ To find your CUR database and table names:
 
 ```hcl
 # Project settings
-project_name = "aiops-mcp-gateway"
+project_name = "finops-mcp"
 aws_region   = "us-east-1"
 
 # MCP Server version from AWS Marketplace
@@ -161,7 +161,7 @@ gateway_id = "your-gateway-id"
 mcp_client_config = {
   "auth_type" = "CUSTOM_JWT"
   "gateway_endpoint" = "https://your-gateway-id.gateway.bedrock-agentcore.us-east-1.amazonaws.com/mcp"
-  "target_name" = "aiops-mcp-gateway-lambda-target"
+  "target_name" = "finops-mcp-lambda-target"
 }
 ```
 

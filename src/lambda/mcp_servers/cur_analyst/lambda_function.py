@@ -1,7 +1,10 @@
 """
-CUR Data Analyst - Lambda for AgentCore Gateway
+CUR Data Analyst - Lambda for Amazon Bedrock AgentCore Gateway
 
-This Lambda combines Cost Explorer API data with CUR 2.0 Athena queries
+Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+SPDX-License-Identifier: MIT-0
+
+This Lambda combines AWS Cost Explorer API data with CUR 2.0 Amazon Athena queries
 to provide comprehensive AWS cost analysis.
 
 Data sources:
@@ -52,6 +55,14 @@ CUR_CONFIG = {
     "output_location": os.environ.get("CUR_OUTPUT_LOCATION", "s3://my-cur-cost-export/athena-results/"),
     "region": os.environ.get("CUR_REGION", "us-east-1"),
 }
+
+# Validate env config at module load to fail fast on misconfiguration
+_IDENTIFIER_PATTERN = re.compile(r"^[a-zA-Z0-9_]+$")
+for _key in ("database", "table"):
+    if not _IDENTIFIER_PATTERN.match(CUR_CONFIG[_key]):
+        raise ValueError(f"CUR_CONFIG[{_key}] contains invalid characters: {CUR_CONFIG[_key]}")
+if not CUR_CONFIG["output_location"].startswith("s3://"):
+    raise ValueError(f"CUR_CONFIG[output_location] must start with s3://, got: {CUR_CONFIG['output_location']}")
 
 # Historical Queries (5)
 HISTORICAL_QUERIES = {
@@ -299,7 +310,7 @@ def collect_cost_explorer_data() -> dict:
     4. Current month by service (totals)
     5. Current month by region (totals)
 
-    Uses MONTHLY granularity for efficiency and to keep response size manageable.
+    Uses MONTHLY granularity to keep response size manageable.
 
     Returns:
         Dictionary with all Cost Explorer results

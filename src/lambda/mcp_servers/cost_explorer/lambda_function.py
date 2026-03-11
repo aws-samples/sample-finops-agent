@@ -1,5 +1,8 @@
 """
-AWS Cost Explorer MCP Server - Lambda Implementation for AgentCore Gateway
+AWS Cost Explorer MCP Server - Lambda Implementation for Amazon Bedrock AgentCore Gateway
+
+Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+SPDX-License-Identifier: MIT-0
 
 This is a custom Lambda implementation inspired by the AWSlabs Cost Explorer MCP Server
 (https://awslabs.github.io/mcp/servers/cost-explorer-mcp-server).
@@ -18,7 +21,7 @@ This Lambda-based approach is a workaround that provides:
 3. **Direct Tool Invocation**: Gateway invokes Lambda per tool call, no MCP session needed
 
 Future Migration:
-We will migrate to use AWSlabs-provided MCP servers when they are ready for
+This project plans to migrate to AWSlabs-provided MCP servers when they support
 multi-tenant Gateway deployments.
 
 Tools (6 of 7 AWSlabs tools - omits get_cost_comparison_drivers):
@@ -40,9 +43,32 @@ Required IAM Permissions:
 """
 
 import json
+import re
 from datetime import datetime, timedelta
 
 import boto3
+
+# Valid Cost Explorer dimensions per AWS API
+VALID_DIMENSIONS = {
+    "AZ", "INSTANCE_TYPE", "LINKED_ACCOUNT", "LINKED_ACCOUNT_NAME",
+    "OPERATION", "PURCHASE_TYPE", "REGION", "SERVICE", "SERVICE_CODE",
+    "USAGE_TYPE", "USAGE_TYPE_GROUP", "RECORD_TYPE", "OPERATING_SYSTEM",
+    "TENANCY", "SCOPE", "PLATFORM", "SUBSCRIPTION_ID", "LEGAL_ENTITY_NAME",
+    "INVOICING_ENTITY", "DEPLOYMENT_OPTION", "DATABASE_ENGINE",
+    "CACHE_ENGINE", "INSTANCE_TYPE_FAMILY", "BILLING_ENTITY",
+    "RESERVATION_ID", "RESOURCE_ID", "SAVINGS_PLAN_ARN",
+}
+
+VALID_GRANULARITIES = {"DAILY", "MONTHLY", "HOURLY"}
+
+DATE_PATTERN = re.compile(r"^\d{4}-\d{2}-\d{2}$")
+
+
+def validate_date(value, param_name):
+    """Validate date is in YYYY-MM-DD format."""
+    if value and not DATE_PATTERN.match(value):
+        return f"{param_name} must be in YYYY-MM-DD format, got: {value}"
+    return None
 
 # Cross-account support - shared module is packaged alongside lambda_function.py
 try:
@@ -107,6 +133,13 @@ def handle_get_dimension_values(event):
     start_date = event.get("start_date")
     end_date = event.get("end_date")
 
+    if dimension not in VALID_DIMENSIONS:
+        return {"error": f"Invalid dimension: {dimension}. Valid values: {sorted(VALID_DIMENSIONS)}"}
+    for name, val in [("start_date", start_date), ("end_date", end_date)]:
+        err = validate_date(val, name)
+        if err:
+            return {"error": err}
+
     # Default to last 30 days if not specified
     if not start_date or not end_date:
         today = datetime.utcnow()
@@ -168,6 +201,13 @@ def handle_get_cost_and_usage(event):
     metrics = event.get("metrics", ["UnblendedCost"])
     group_by = event.get("group_by", [])
     filter_expr = event.get("filter")
+
+    if granularity not in VALID_GRANULARITIES:
+        return {"error": f"Invalid granularity: {granularity}. Valid values: {sorted(VALID_GRANULARITIES)}"}
+    for name, val in [("start_date", start_date), ("end_date", end_date)]:
+        err = validate_date(val, name)
+        if err:
+            return {"error": err}
 
     # Default to current month if not specified
     if not start_date or not end_date:

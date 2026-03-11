@@ -3,7 +3,7 @@
 # -----------------------------------------------------------------------------
 
 variable "project_name" {
-  description = "Name prefix for all resources (e.g., 'aiops-mcp-gateway')"
+  description = "Name prefix for all resources (e.g., 'finops-mcp')"
   type        = string
 
   validation {
@@ -108,7 +108,7 @@ variable "tags" {
   description = "Tags to apply to all resources"
   type        = map(string)
   default = {
-    Project   = "AIOps MCP Gateway"
+    Project   = "AWS FinOps Agent"
     ManagedBy = "Terraform"
   }
 }

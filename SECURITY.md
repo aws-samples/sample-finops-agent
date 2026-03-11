@@ -2,7 +2,7 @@
 
 ## Overview
 
-The AWS FinOps Agent is an MCP gateway for Cloud Financial Management (CFM) that accesses AWS Cost Explorer, Amazon Athena, and related services. This document describes the security controls, shared responsibilities, and design decisions.
+The AWS FinOps Agent is an MCP (Model Context Protocol) gateway for Cloud Financial Management (CFM) that accesses AWS Cost Explorer, Amazon Athena, and related services. It deploys on Amazon Bedrock AgentCore. This document describes the security controls, shared responsibilities, and design decisions.
 
 ## Shared Responsibility Model
 
@@ -55,10 +55,16 @@ Cross-account access uses STS AssumeRole with:
 - **S3 (CUR Bucket)**: Deployer responsibility. Enable SSE-S3 or SSE-KMS on your CUR bucket.
 - **Terraform State**: Contains sensitive values (External ID). Store in an encrypted S3 backend with restricted access.
 
+### Key Management
+
+- Customer-managed KMS keys are optional. If provided via `lambda_kms_key_arn`, the deployer is responsible for key policy configuration, rotation, and access control.
+- AWS managed keys (default) handle rotation automatically.
+- KMS key ARNs are passed through Terraform variables — review key policies before deployment to ensure they grant appropriate access.
+
 ### In Transit
 
 - All AWS API calls use TLS 1.2+.
-- When VPC mode is enabled, traffic routes through VPC endpoints (private link), never traversing the public internet.
+- When VPC mode is enabled, traffic routes through VPC endpoints (PrivateLink), without traversing the public internet.
 
 ## Network Security
 
@@ -70,7 +76,7 @@ When `enable_vpc = true`:
 - **VPC endpoints** provide private connectivity to AWS services: S3 (gateway), STS, CloudWatch Logs, Athena, AWS Glue, Cost Explorer, Bedrock AgentCore (interface)
 - **Security groups** restrict traffic to HTTPS (port 443) only
 - **VPC Flow Logs** capture network traffic to CloudWatch Logs
-- **Default security group** denies all traffic (AWS best practice)
+- **Default security group** denies all traffic (per [AWS VPC security guidance](https://docs.aws.amazon.com/vpc/latest/userguide/vpc-security-groups.html))
 
 ### Without VPC
 
@@ -88,7 +94,7 @@ Several IAM policies use `"*"` as the resource. These are AWS service limitation
 
 S3 permissions for the CUR Analyst Lambda are scoped to the specific CUR bucket ARN (`arn:aws:s3:::{cur_bucket_name}` and `arn:aws:s3:::{cur_bucket_name}/*`).
 
-## AI/GenAI Security
+## AI and Generative AI Security
 
 ### Scope of AI Interaction
 
@@ -100,12 +106,21 @@ S3 permissions for the CUR Analyst Lambda are scoped to the specific CUR bucket 
 
 - Lambda functions validate required parameters before execution.
 - Athena queries are executed via the Athena API (not string concatenation into SQL). The API handles query parsing and execution.
-- Environment variables for database/table names come from Terraform configuration, not user input.
+- The Athena MCP Lambda validates that SQL queries are read-only (SELECT, SHOW, DESCRIBE) and rejects DDL/DML operations (DROP, DELETE, INSERT, etc.) as defense in depth.
+- Cost Explorer parameters (dimensions, dates, granularity) are validated against allowlists before API calls.
+- CUR Analyst month parameters are validated against YYYY-MM format via regex.
+- Environment variables for database/table names come from Terraform configuration, not user input. They are validated at Lambda cold start for safe identifier patterns.
+
+### Output Handling
+
+- Lambda functions return structured JSON responses with typed fields (amounts, dates, resource IDs).
+- Error responses include only the exception message, not stack traces or internal state.
+- Cost data responses contain only AWS billing data fields — no customer content or PII is included in outputs.
 
 ### Data Classification
 
 - **Cost data**: Non-PII financial data (spend amounts, service names, resource IDs). No customer content or personal data flows through the agent.
-- **No training**: Data processed by the agent is not used for model training. Amazon Bedrock AgentCore does not retain customer data.
+- **Data retention**: Data processed by the agent is not used for model training. Amazon Bedrock AgentCore does not retain customer data for training purposes.
 
 ### Bias and Fairness
 

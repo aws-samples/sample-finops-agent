@@ -174,10 +174,10 @@ For full security documentation, see [SECURITY.md](../SECURITY.md).
 
 ### Threat Considerations
 
-| Threat | Mitigation |
-|--------|------------|
-| Unauthenticated access | JWT validation at AgentCore Gateway; AWS_IAM (SigV4) as alternative |
-| Privilege escalation | Dedicated IAM roles per Lambda; no admin permissions; read-only by default |
-| Data exfiltration | VPC with no internet egress (when enabled); S3 access scoped to CUR bucket |
-| Cross-account abuse | External ID on AssumeRole; role trust policy restricted to specific account |
-| Excessive invocations | Reserved concurrency limits on all Lambda functions |
+| Threat | Mitigation | Responsibility |
+|--------|------------|---------------|
+| Unauthenticated access | JWT validation at AgentCore Gateway; AWS_IAM (SigV4) as alternative | Deployer (configure IdP) |
+| Privilege escalation | Dedicated IAM roles per Lambda; no admin permissions; read-only by default | Project (IAM design) |
+| Data exfiltration | VPC with no internet egress (when enabled); S3 access scoped to CUR bucket | Deployer (enable VPC) |
+| Cross-account abuse | External ID on AssumeRole; role trust policy restricted to specific account | Project (auto-generated) |
+| Excessive invocations | Reserved concurrency limits on all Lambda functions | Project (default: 10) |

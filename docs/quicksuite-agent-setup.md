@@ -1,6 +1,6 @@
 # QuickSuite CFM Agent Setup
 
-This guide walks through setting up a Cloud Financial Management (CFM) agent in QuickSuite, connected to the AgentCore Gateway MCP endpoints.
+This guide walks through setting up a Cloud Financial Management (CFM) agent in QuickSuite, connected to the Amazon Bedrock AgentCore Gateway MCP (Model Context Protocol) endpoints.
 
 ## Prerequisites
 
@@ -17,6 +17,7 @@ This integration follows the [AWS Shared Responsibility Model](https://aws.amazo
 - **Gateway authentication**: Ensure `gateway_auth_type = "CUSTOM_JWT"` is set in production. Never use `NONE`.
 - **Audit**: Monitor AgentCore Gateway access via CloudWatch Logs.
 - **Third-party services**: QuickSuite ([quicksuite.ai](https://quicksuite.ai)) is the MCP client used in this guide. Verify that your organization's policies permit use of this service and that any data processing agreements are in place before configuring it with your AWS cost data.
+- **Data handling**: The agent processes AWS cost and usage data (non-PII financial data). No customer content or personal data flows through the agent. See [SECURITY.md](../SECURITY.md#data-classification) for data classification details.
 
 For full security documentation, see [SECURITY.md](../SECURITY.md).
 
@@ -118,7 +119,7 @@ CRITICAL: Never fabricate data. Always execute MCP tool calls first and only pre
  ### AWS API MCP (Fallback for unsupported operations)
  | Tool | Use For |
  |------|---------|
- | `call_aws` | Execute any AWS CLI command (read-only access) |
+ | `call_aws` | Execute AWS CLI commands (constrained to ReadOnlyAccess IAM policy by default) |
  | `suggest_aws_commands` | Get AWS CLI command suggestions |
 
  **Use AWS API MCP only when:**

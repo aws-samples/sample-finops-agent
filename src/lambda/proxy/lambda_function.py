@@ -1,6 +1,9 @@
 """
-Lambda proxy for AgentCore MCP runtime.
+Lambda proxy for Amazon Bedrock AgentCore MCP (Model Context Protocol) runtime.
 Forwards MCP requests to the hosted runtime using InvokeAgentRuntime API.
+
+Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+SPDX-License-Identifier: MIT-0
 """
 
 import contextlib

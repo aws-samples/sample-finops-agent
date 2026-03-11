@@ -1,11 +1,11 @@
 # -----------------------------------------------------------------------------
-# AIOps MCP Gateway Proxy - Terraform Variables
+# AWS FinOps Agent - Terraform Variables
 # -----------------------------------------------------------------------------
 # Copy this file to terraform/config/terraform.tfvars and customize for your deployment
 # -----------------------------------------------------------------------------
 
 # REQUIRED: Project name prefix (must start with letter, lowercase, hyphens ok)
-project_name = "aiops-mcp-gateway"
+project_name = "finops-mcp"
 
 # AWS region to deploy resources
 aws_region = "us-east-1"
@@ -59,10 +59,10 @@ runtime_aws_policy_arn = "arn:aws:iam::aws:policy/ReadOnlyAccess"
 # S3 bucket containing CUR 2.0 data (in management account)
 cur_bucket_name = "my-cur-cost-export"
 
-# Athena/Glue database name for CUR data
+# AWS Glue/Athena database name for CUR data
 cur_database_name = "cur_database"
 
-# Athena/Glue table name for CUR data
+# AWS Glue/Athena table name for CUR data
 cur_table_name = "mycostexport"
 
 # S3 location for Athena query results (optional)
@@ -98,9 +98,9 @@ environment = "dev"
 
 # Tags applied to all resources
 tags = {
-  Project     = "AIOps MCP Gateway"
+  Project     = "AWS FinOps Agent"
   ManagedBy   = "Terraform"
-  Owner       = "tracilim"
-  CostCenter  = "root"
+  Owner       = "your-alias"
+  CostCenter  = "your-cost-center"
   auto-delete = "no"
 }

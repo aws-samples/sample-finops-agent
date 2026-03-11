@@ -1,4 +1,7 @@
-"""Cross-account AWS session management for MCP Lambda functions.
+"""Cross-account AWS session management for MCP (Model Context Protocol) Lambda functions.
+
+Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+SPDX-License-Identifier: MIT-0
 
 Used when deploying to data collection account with access to
 Cost Explorer and CUR data in the management/payer account.
