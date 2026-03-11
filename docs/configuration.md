@@ -17,13 +17,15 @@ Main Terraform configuration. Created from `terraform.tfvars.example` by `make s
 
 #### CUR Configuration (Required)
 
-You **must** configure these variables to match your CUR 2.0 export. Find these values in the AWS Glue Data Catalog or Athena console:
+You **must** configure these variables to match your CUR 2.0 export. Find these values in the [AWS Glue Data Catalog](https://docs.aws.amazon.com/glue/latest/dg/catalog-and-crawler.html) or Athena console.
+
+> **S3 Security**: Your CUR S3 bucket should have Block Public Access enabled, server-side encryption (SSE-S3 or SSE-KMS), versioning, and a bucket policy requiring TLS (`aws:SecureTransport`). See [SECURITY.md](../SECURITY.md#s3-security-requirements) for details.
 
 ```hcl
 # CUR (Cost and Usage Report) Configuration
 cur_bucket_name            = "your-cur-bucket"      # S3 bucket containing CUR data
-cur_database_name          = "your_cur_database"    # Glue/Athena database name
-cur_table_name             = "your_cur_table"       # Glue/Athena table name
+cur_database_name          = "your_cur_database"    # AWS Glue/Athena database name
+cur_table_name             = "your_cur_table"       # AWS Glue/Athena table name
 cur_athena_output_location = ""                     # Optional: custom S3 path for Athena results
                                                     # Defaults to s3://{cur_bucket}/athena-results/
 ```
@@ -38,7 +40,7 @@ To find your CUR database and table names:
 
 ```hcl
 # Project settings
-project_name = "aiops-mcp-gateway"
+project_name = "finops-mcp"
 aws_region   = "us-east-1"
 
 # MCP Server version from AWS Marketplace
@@ -89,7 +91,7 @@ gateway_auth_type = "AWS_IAM"
 
 ### NONE
 
-No authentication (use only for testing).
+No authentication. **Do not use in production** — this exposes the gateway to unauthenticated access.
 
 ```hcl
 gateway_auth_type = "NONE"
@@ -159,7 +161,7 @@ gateway_id = "your-gateway-id"
 mcp_client_config = {
   "auth_type" = "CUSTOM_JWT"
   "gateway_endpoint" = "https://your-gateway-id.gateway.bedrock-agentcore.us-east-1.amazonaws.com/mcp"
-  "target_name" = "aiops-mcp-gateway-lambda-target"
+  "target_name" = "finops-mcp-lambda-target"
 }
 ```
 

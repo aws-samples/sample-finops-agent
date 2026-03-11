@@ -1,5 +1,8 @@
 """
-AWS Athena MCP Server - Lambda Implementation for AgentCore Gateway
+Amazon Athena MCP Server - Lambda Implementation for Amazon Bedrock AgentCore Gateway
+
+Copyright Amazon.com, Inc. or its affiliates. All Rights Reserved.
+SPDX-License-Identifier: MIT-0
 
 This is a custom Lambda implementation inspired by the AWSlabs Data Processing MCP Server
 (https://awslabs.github.io/mcp/servers/aws-dataprocessing-mcp-server).
@@ -18,7 +21,7 @@ This Lambda-based approach is a workaround that provides:
 3. **Direct Tool Invocation**: Gateway invokes Lambda per tool call, no MCP session needed
 
 Future Migration:
-We will migrate to use AWSlabs-provided MCP servers when they are ready for
+This project plans to migrate to AWSlabs-provided MCP servers when they support
 multi-tenant Gateway deployments.
 
 Tools implemented:
@@ -43,16 +46,27 @@ Required IAM Permissions:
 - athena:ListTableMetadata
 - athena:GetTableMetadata
 - athena:StopQueryExecution
-- s3:GetBucketLocation (for results bucket)
-- s3:GetObject (for query results)
-- s3:PutObject (for query results)
-- glue:GetDatabases (for data catalog)
-- glue:GetTables (for table metadata)
+- Amazon S3: s3:GetBucketLocation, s3:GetObject, s3:PutObject (for query results)
+- AWS Glue: glue:GetDatabases, glue:GetTables (for data catalog)
 """
 
 import json
+import re
 
 import boto3
+
+# Block DDL/DML operations - defense in depth (IAM also restricts write actions)
+BLOCKED_SQL_PATTERNS = re.compile(
+    r"\b(DROP|DELETE|INSERT|UPDATE|CREATE|ALTER|TRUNCATE|MERGE|GRANT|REVOKE|MSCK)\b",
+    re.IGNORECASE,
+)
+
+
+def validate_query(query_string):
+    """Validate SQL query is read-only. Returns (is_valid, error_message)."""
+    if BLOCKED_SQL_PATTERNS.search(query_string):
+        return False, "Only SELECT, SHOW, and DESCRIBE queries are allowed. DDL/DML operations are blocked."
+    return True, None
 
 # Cross-account support - shared module is packaged alongside lambda_function.py
 try:
@@ -118,6 +132,10 @@ def handle_start_query_execution(event):
 
     if not query_string:
         return {"error": "query_string parameter is required"}
+
+    is_valid, error_msg = validate_query(query_string)
+    if not is_valid:
+        return {"error": error_msg}
 
     athena = get_aws_client("athena")
 

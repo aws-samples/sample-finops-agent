@@ -36,12 +36,12 @@ DataUnavailableException: The data you are requesting is not available
 make output | grep lambda_log_group
 
 # View recent logs (replace with your function name)
-aws logs tail /aws/lambda/aiops-mcp-gateway-proxy --follow
+aws logs tail /aws/lambda/finops-mcp-proxy --follow
 
 # View specific Lambda logs
-aws logs tail /aws/lambda/aiops-mcp-gateway-cost-explorer-mcp --follow
-aws logs tail /aws/lambda/aiops-mcp-gateway-athena-mcp --follow
-aws logs tail /aws/lambda/aiops-mcp-gateway-cur-analyst-mcp --follow
+aws logs tail /aws/lambda/finops-mcp-cost-explorer-mcp --follow
+aws logs tail /aws/lambda/finops-mcp-athena-mcp --follow
+aws logs tail /aws/lambda/finops-mcp-cur-analyst-mcp --follow
 ```
 
 ### Runtime Status
@@ -65,7 +65,7 @@ Using AWS CLI (requires SigV4 signing):
 ```bash
 aws bedrock-agentcore invoke-gateway \
   --gateway-identifier <gateway_id> \
-  --target-name aiops-mcp-gateway-lambda-target \
+  --target-name finops-mcp-lambda-target \
   --payload '{"jsonrpc":"2.0","id":1,"method":"tools/list","params":{}}'
 ```
 
@@ -80,13 +80,13 @@ Or test individual functions:
 ```bash
 # Test test-mcp
 aws lambda invoke \
-  --function-name aiops-mcp-gateway-test-mcp \
+  --function-name finops-mcp-test-mcp \
   --payload '{"jsonrpc":"2.0","id":1,"method":"tools/list","params":{}}' \
   /dev/stdout
 
 # Test cost-explorer-mcp
 aws lambda invoke \
-  --function-name aiops-mcp-gateway-cost-explorer-mcp \
+  --function-name finops-mcp-cost-explorer-mcp \
   --payload '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"get_today_date","arguments":{}}}' \
   /dev/stdout
 ```

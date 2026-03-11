@@ -5,7 +5,7 @@
 # account) to invoke the cur-analyst Lambda function using role assumption.
 #
 # Architecture:
-#   n8n Account (739907928487)          Lambda Account (this account)
+#   n8n Account (<N8N_ACCOUNT_ID>)          Lambda Account (this account)
 #   ┌─────────────────────┐            ┌─────────────────────────────┐
 #   │ n8n IAM User        │            │ n8n-lambda-invoker Role     │
 #   │ (with access keys)  │──assumes──▶│ (trust: n8n account)        │

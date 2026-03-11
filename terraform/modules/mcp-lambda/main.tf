@@ -145,8 +145,8 @@ locals {
 }
 
 resource "aws_lambda_function" "mcp" {
-  # checkov:skip=CKV_AWS_116:Synchronous invocation by AgentCore Gateway - DLQ only applies to async invocations
-  # checkov:skip=CKV_AWS_272:Code packaged from local source via archive_file - code-signing requires CI/CD pipeline
+  # checkov:skip=CKV_AWS_116:Synchronous invocation by AgentCore Gateway - DLQ only applies to async invocations. Compensating control: Lambda errors are logged to CloudWatch with 365-day retention.
+  # checkov:skip=CKV_AWS_272:Code packaged from local source via archive_file - code-signing requires CI/CD pipeline. Compensating control: source code is version-controlled in Git.
   function_name = "${var.project_name}-${var.server_name}-mcp"
   description   = var.description
 

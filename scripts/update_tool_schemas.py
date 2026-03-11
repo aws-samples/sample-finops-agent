@@ -28,7 +28,7 @@ GATEWAY_ID = os.environ.get("GATEWAY_ID", "")
 
 # Tool schemas for each target
 TOOL_SCHEMAS = {
-    "aiops-mcp-gateway-lambda-target": {
+    "finops-mcp-lambda-target": {
                 "description": "AWS API MCP server proxy (call_aws, suggest_aws_commands)",
         "tools": [
             {

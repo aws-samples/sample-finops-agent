@@ -1,12 +1,12 @@
 # AWS FinOps Agent
 
-An MCP-enabled agent for Cloud Financial Management (CFM) that provides secure access to AWS Cost Explorer, Amazon Athena CUR 2.0, and AWS APIs. Deploys on Amazon Bedrock AgentCore with AWS Lambda functions and integrates with MCP clients like QuickSuite and Claude Code.
+An MCP (Model Context Protocol)-enabled agent for Cloud Financial Management (CFM) that provides secure access to AWS Cost Explorer, Amazon Athena CUR 2.0, and AWS APIs. Deploys on Amazon Bedrock AgentCore with AWS Lambda functions and integrates with MCP clients like QuickSuite and Claude Code.
 
 ## Architecture
 
 ![Architecture Diagram](docs/images/architecture-diagram.png)
 
-All Gateway targets are **Lambda functions**. The `lambda-proxy` Lambda forwards requests to the AgentCore Runtime which hosts the aws-api-mcp-server container.
+All Gateway targets are **Lambda functions**. The `lambda-proxy` Lambda forwards requests to the Bedrock AgentCore Runtime which hosts the aws-api-mcp-server container.
 
 ## Deployment Modes
 
@@ -15,7 +15,7 @@ The gateway supports two deployment modes, configured via `terraform/config/.env
 - **Cross-account** (recommended): Gateway in a data collection account, CUR data in management/payer account. Set both `TF_VAR_aws_profile` and `TF_VAR_management_account_profile`. Best practice for AWS Organizations setups.
 - **Single-account**: Gateway and CUR data in the same account. Set `AWS_PROFILE` only. Suitable for standalone accounts or testing.
 
-Cross-account mode follows AWS best practices by keeping workloads out of the management account. It's the standard pattern for [AWS Cloud Intelligence Dashboards](https://docs.aws.amazon.com/guidance/latest/cloud-intelligence-dashboards/cudos-cid-kpi.html) (CUDOS, CID, KPI):
+Cross-account mode follows the [AWS recommended approach](https://docs.aws.amazon.com/organizations/latest/userguide/orgs_best-practices_mgmt-acct.html) of keeping workloads out of the management account. It's the standard pattern for [AWS Cloud Intelligence Dashboards](https://docs.aws.amazon.com/guidance/latest/cloud-intelligence-dashboards/cudos-cid-kpi.html) (CUDOS, CID, KPI):
 
 ```
 Data Collection Account              Management/Payer Account
@@ -25,7 +25,7 @@ Data Collection Account              Management/Payer Account
 │  KPI Dashboard          │         │                         │
 │                         │         │  Cost Explorer API      │
 │  AWS FinOps Agent       │────────>│  CUR S3 Bucket          │
-│  - cost-explorer-mcp    │ Assume  │  Athena/Glue            │
+│  - cost-explorer-mcp    │ Assume  │  Athena/AWS Glue        │
 │  - cur-analyst-mcp      │  Role   │                         │
 │  - athena-mcp           │         │                         │
 └─────────────────────────┘         └─────────────────────────┘
@@ -36,7 +36,7 @@ A single `make deploy` creates resources in both accounts. For cross-account, Te
 ## Prerequisites
 
 1. **AWS Marketplace Subscription** - [Subscribe to aws-api-mcp-server](https://aws.amazon.com/marketplace/pp/prodview-lqqkwbcraxsgw) (free, accept terms). For cross-account deployments, subscribe from the **data collection account**.
-2. **CUR 2.0 Export** - [Create a Cost and Usage Report 2.0](https://docs.aws.amazon.com/cur/latest/userguide/cur-create.html) export to S3 with Athena integration enabled
+2. **CUR 2.0 Export** - [Create a Cost and Usage Report 2.0](https://docs.aws.amazon.com/cur/latest/userguide/cur-create.html) export to Amazon S3 with Athena integration enabled. Ensure the S3 bucket has Block Public Access enabled and server-side encryption configured.
 3. **Identity Provider (IdP)** - OIDC-compliant IdP for JWT authentication (see [Identity Provider Setup](#identity-provider-setup))
 4. **AWS CLI Profiles** - [Named profiles](https://docs.aws.amazon.com/cli/v1/userguide/cli-configure-files.html) configured for target account(s)
 5. **Tools** - Terraform >= 1.5.0, [uv](https://docs.astral.sh/uv/), tflint (optional)
@@ -103,18 +103,18 @@ Terraform variables for project configuration. Created from `terraform.tfvars.ex
 
 **Required: CUR Configuration**
 
-You must configure these variables to match your CUR 2.0 export settings. Find these values in the AWS Cost and Usage Reports console or your Athena/Glue setup:
+You must configure these variables to match your CUR 2.0 export settings. Find these values in the AWS Cost and Usage Reports console or your Athena/AWS Glue setup:
 
 ```hcl
 # CUR (Cost and Usage Report) Configuration - REQUIRED
 cur_bucket_name            = "your-cur-bucket"      # S3 bucket with CUR 2.0 data
-cur_database_name          = "your_cur_database"    # Glue database name (check Athena)
-cur_table_name             = "your_cur_table"       # Glue table name (check Athena)
+cur_database_name          = "your_cur_database"    # AWS Glue database name (check Athena)
+cur_table_name             = "your_cur_table"       # AWS Glue table name (check Athena)
 cur_athena_output_location = ""                     # Optional: S3 path for Athena results
                                                     # Defaults to s3://{cur_bucket}/athena-results/
 ```
 
-> **Important: Verify your Athena table covers all billing periods.** CUR 2.0 exports store data in Hive-style partitioned folders (e.g., `s3://{bucket}/.../data/BILLING_PERIOD=2025-12/`). Some Glue Crawlers set the table location to a specific billing period instead of the parent `data/` directory, which causes Athena to only return that single month. Verify by running:
+> **Important: Verify your Athena table covers all billing periods.** CUR 2.0 exports store data in Hive-style partitioned folders (e.g., `s3://{bucket}/.../data/BILLING_PERIOD=2025-12/`). Some AWS Glue Crawlers set the table location to a specific billing period instead of the parent `data/` directory, which causes Athena to only return that single month. Verify by running:
 > ```sql
 > SELECT DISTINCT billing_period FROM your_database.your_table ORDER BY billing_period;
 > ```
@@ -129,7 +129,7 @@ cur_athena_output_location = ""                     # Optional: S3 path for Athe
 project_name      = "finops-mcp"           # Prefix for all resources (optional)
 
 # VPC: places Lambdas in a VPC with private subnets and 7 VPC endpoints
-# (S3, STS, Logs, Athena, Glue, Cost Explorer, Bedrock AgentCore)
+# (S3, STS, Logs, Athena, AWS Glue, Cost Explorer, Bedrock AgentCore)
 # No NAT Gateway needed — all AWS API traffic goes through VPC endpoints
 enable_vpc        = true                   # Default: false
 # vpc_cidr        = "10.0.0.0/24"         # Default: "10.0.0.0/24"
@@ -185,15 +185,15 @@ After deployment, configure your MCP client (QuickSuite) to connect to the gatew
 | Target                         | Description                                       |
 | ------------------------------ | ------------------------------------------------- |
 | `<project_name>-lambda-target` | AWS CLI execution (forwards to AgentCore Runtime) |
-| `cost-explorer-mcp`            | Cost Explorer API (6 tools)                       |
+| `cost-explorer-mcp`            | AWS Cost Explorer API (6 tools)                   |
 | `athena-mcp`                   | Athena queries (8 tools)                          |
-| `cur-analyst-mcp`              | Cost Explorer + Athena CUR 2.0 (1 tool)           |
+| `cur-analyst-mcp`              | AWS Cost Explorer + Athena CUR 2.0 (1 tool)       |
 
 ## Documentation
 
 | Guide                                                    | Description                                          |
 | -------------------------------------------------------- | ---------------------------------------------------- |
-| [Security](SECURITY.md)                                  | Security controls, shared responsibility, IAM design |
+| [Security](SECURITY.md)                                  | Security controls, shared responsibility model, IAM design, AI security (scanned with Checkov, Semgrep) |
 | [Architecture](docs/architecture.md)                     | Detailed architecture, components, project structure |
 | [MCP Tools Reference](docs/mcp-tools-reference.md)       | All 17 MCP tools by target                           |
 | [Configuration](docs/configuration.md)                   | tfvars, permissions, make commands                   |

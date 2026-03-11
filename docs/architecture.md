@@ -14,7 +14,7 @@ The FinOps MCP Gateway deploys an Amazon Bedrock AgentCore Gateway that exposes 
 │              │<────────────────│  │  AgentCore  │       │  Lambda Targets                              │ │
 │              │                 │  │   Gateway   │       │                                              │ │
 └──────────────┘                 │  │             │──────>│  cost-explorer-mcp ───> Cost Explorer API    │ │
-                                 │  │             │       │  athena-mcp ──────────> Athena + S3 + Glue   │ │
+                                 │  │             │       │  athena-mcp ──────────> Athena + S3 + AWS Glue   │ │
                                  │  │             │       │  cur-analyst-mcp ─────> Cost Explorer +      │ │
                                  │  │             │       │                         Athena CUR 2.0       │ │
                                  │  │             │       │                                              │ │
@@ -139,6 +139,16 @@ aws-finops-mcp-gateway/
 
 For full security documentation, see [SECURITY.md](../SECURITY.md).
 
+### Shared Responsibility
+
+| Area | AWS / Project Provides | Deployer Configures |
+|------|----------------------|-------------------|
+| Authentication | CUSTOM_JWT gateway integration | OIDC identity provider, credentials |
+| Network | VPC module with private subnets, endpoints | Enable VPC, review CIDR ranges |
+| Encryption | KMS variable support | Provide KMS key ARN if required |
+| S3 Security | IAM policies scoped to CUR bucket | Block Public Access, SSE, versioning |
+| Monitoring | CloudWatch Logs, X-Ray tracing | Alarms, dashboards, log analysis |
+
 ### Authentication & Authorization
 
 - **Authentication**: CUSTOM_JWT with an OIDC-compliant identity provider validates user identity via JWT tokens at the AgentCore Gateway
@@ -148,7 +158,7 @@ For full security documentation, see [SECURITY.md](../SECURITY.md).
 
 ### Network Security
 
-- **VPC Deployment** (optional): Lambda functions run in private subnets with no internet access. All AWS API traffic routes through VPC endpoints (S3, STS, CloudWatch Logs, Athena, Glue, Cost Explorer, Bedrock AgentCore)
+- **VPC Deployment** (optional): Lambda functions run in private subnets with no internet access. All AWS API traffic routes through VPC endpoints (S3, STS, CloudWatch Logs, Athena, AWS Glue, Cost Explorer, Bedrock AgentCore)
 - **Security Groups**: Restrict traffic to HTTPS (port 443) only, limited to VPC endpoint communication
 
 ### Data Protection
@@ -164,10 +174,10 @@ For full security documentation, see [SECURITY.md](../SECURITY.md).
 
 ### Threat Considerations
 
-| Threat | Mitigation |
-|--------|------------|
-| Unauthenticated access | JWT validation at AgentCore Gateway; AWS_IAM (SigV4) as alternative |
-| Privilege escalation | Dedicated IAM roles per Lambda; no admin permissions; read-only by default |
-| Data exfiltration | VPC with no internet egress (when enabled); S3 access scoped to CUR bucket |
-| Cross-account abuse | External ID on AssumeRole; role trust policy restricted to specific account |
-| Excessive invocations | Reserved concurrency limits on all Lambda functions |
+| Threat | Mitigation | Responsibility |
+|--------|------------|---------------|
+| Unauthenticated access | JWT validation at AgentCore Gateway; AWS_IAM (SigV4) as alternative | Deployer (configure IdP) |
+| Privilege escalation | Dedicated IAM roles per Lambda; no admin permissions; read-only by default | Project (IAM design) |
+| Data exfiltration | VPC with no internet egress (when enabled); S3 access scoped to CUR bucket | Deployer (enable VPC) |
+| Cross-account abuse | External ID on AssumeRole; role trust policy restricted to specific account | Project (auto-generated) |
+| Excessive invocations | Reserved concurrency limits on all Lambda functions | Project (default: 10) |

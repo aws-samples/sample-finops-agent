@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Script to invoke the aiops-mcp-gateway-proxy Lambda function.
+Script to invoke the finops-mcp-proxy Lambda function.
 Usage: python invoke_lambda.py
 """
 
@@ -10,7 +10,7 @@ import os
 import boto3
 
 
-LAMBDA_FUNCTION_NAME = "aiops-mcp-gateway-proxy"
+LAMBDA_FUNCTION_NAME = "finops-mcp-proxy"
 AWS_REGION = "us-east-1"
 AWS_PROFILE = os.environ.get("AWS_PROFILE", "root")
 
@@ -72,7 +72,7 @@ def mcp_call_tool(tool_name: str, arguments: dict) -> dict:
 
 def main():
     print("=" * 60)
-    print("Testing aiops-mcp-gateway-proxy Lambda")
+    print("Testing finops-mcp-proxy Lambda")
     print("=" * 60)
 
     # Test 1: Initialize

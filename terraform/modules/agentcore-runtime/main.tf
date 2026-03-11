@@ -1,5 +1,5 @@
 # -----------------------------------------------------------------------------
-# AgentCore Runtime - MCP Server Deployment
+# Amazon Bedrock AgentCore Runtime - MCP (Model Context Protocol) Server Deployment
 # Deploys aws-api-mcp-server from AWS Marketplace to AgentCore
 # -----------------------------------------------------------------------------
 

@@ -1,6 +1,6 @@
 # -----------------------------------------------------------------------------
 # AgentCore Gateway
-# Exposes MCP endpoint for external clients (Claude Code, etc.)
+# Exposes MCP (Model Context Protocol) endpoint for external clients (Claude Code, etc.)
 # -----------------------------------------------------------------------------
 
 terraform {
