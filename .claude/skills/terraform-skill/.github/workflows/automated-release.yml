@@ -1,0 +1,170 @@
+name: Automated Release
+
+on:
+  push:
+    branches:
+      - master
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Create Automated Release
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. Checkout with full history for conventional commits analysis
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      # 2. Bump version, generate changelog, tag, and commit
+      # This action handles:
+      # - Version calculation from conventional commits
+      # - CHANGELOG.md generation and update
+      # - Git tagging
+      # - Git commit and push
+      - name: Conventional Changelog Action
+        id: changelog
+        uses: TriPSs/conventional-changelog-action@v5
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          git-message: 'chore(release): {version}'
+          git-user-name: 'github-actions[bot]'
+          git-user-email: 'github-actions[bot]@users.noreply.github.com'
+          preset: 'angular'
+          tag-prefix: 'v'
+          output-file: 'CHANGELOG.md'
+          version-file: './.claude-plugin/marketplace.json'
+          version-path: 'version'
+          skip-on-empty: 'false'
+          skip-version-file: 'false'
+          skip-commit: 'false'
+
+      # 2b. Sync plugin version, SKILL.md version, and git ref
+      # This ensures all three version fields stay synchronized:
+      # - root version (updated by conventional-changelog-action above)
+      # - plugins[0].version (synced here)
+      # - SKILL.md metadata.version (synced here)
+      - name: Sync Plugin Version and SKILL.md
+        if: steps.changelog.outputs.skipped == 'false'
+        env:
+          VERSION: ${{ steps.changelog.outputs.version }}
+        run: |
+          python3 << 'EOF'
+          import json
+          import os
+          import sys
+
+          def update_skill_version(version):
+              """Update version in SKILL.md YAML frontmatter."""
+              skill_path = 'SKILL.md'
+
+              if not os.path.exists(skill_path):
+                  raise FileNotFoundError(f"{skill_path} not found")
+
+              with open(skill_path, 'r') as f:
+                  lines = f.readlines()
+
+              # Find and update version line in frontmatter (typically line 7)
+              updated = False
+              for i, line in enumerate(lines):
+                  # Match "  version: X.Y.Z" pattern (2 spaces indent)
+                  if line.strip().startswith('version:') and i < 10:  # Within frontmatter
+                      lines[i] = f'  version: {version}\n'
+                      updated = True
+                      break
+
+              if not updated:
+                  raise ValueError("Could not find version field in SKILL.md frontmatter")
+
+              with open(skill_path, 'w') as f:
+                  f.writelines(lines)
+
+              return skill_path
+
+          try:
+              version = os.environ['VERSION']
+
+              # 1. Update marketplace.json
+              with open('.claude-plugin/marketplace.json', 'r') as f:
+                  data = json.load(f)
+
+              # Validate structure
+              if 'plugins' not in data or len(data['plugins']) == 0:
+                  raise ValueError("No plugins found in marketplace.json")
+
+              # Sync marketplace.json versions
+              data['plugins'][0]['version'] = version
+
+              # Validate marketplace.json synced state
+              if data['version'] != version:
+                  raise ValueError(f"Marketplace version {data['version']} != {version}")
+
+              with open('.claude-plugin/marketplace.json', 'w') as f:
+                  json.dump(data, f, indent=2)
+                  f.write('\n')
+
+              print(f"✅ Synced marketplace.json plugin version to {version}")
+
+              # 2. Update SKILL.md
+              skill_path = update_skill_version(version)
+              print(f"✅ Synced {skill_path} metadata.version to {version}")
+
+              # 3. Final validation - all three versions match
+              print(f"\n📋 Version Sync Summary:")
+              print(f"   - marketplace.json root: {data['version']}")
+              print(f"   - marketplace.json plugins[0]: {data['plugins'][0]['version']}")
+              print(f"   - SKILL.md metadata: {version}")
+              print(f"   ✅ All versions synchronized to {version}")
+
+          except Exception as e:
+              print(f"❌ ERROR: Failed to sync versions: {e}")
+              sys.exit(1)
+          EOF
+
+          # Commit the sync
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add .claude-plugin/marketplace.json SKILL.md
+          git commit --amend --no-edit
+          git push --force-with-lease
+
+      # 3. Create GitHub Release
+      # Only run if a new version was created
+      - name: Create GitHub Release
+        if: steps.changelog.outputs.skipped == 'false'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.changelog.outputs.tag }}
+          name: ${{ steps.changelog.outputs.tag }}
+          body: ${{ steps.changelog.outputs.clean_changelog }}
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # 4. Summary
+      - name: Release Summary
+        if: steps.changelog.outputs.skipped == 'false'
+        env:
+          VERSION: ${{ steps.changelog.outputs.version }}
+          TAG: ${{ steps.changelog.outputs.tag }}
+          CLEAN_CHANGELOG: ${{ steps.changelog.outputs.clean_changelog }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          echo "## Release Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "✅ **Version:** $VERSION" >> $GITHUB_STEP_SUMMARY
+          echo "✅ **Tag:** $TAG" >> $GITHUB_STEP_SUMMARY
+          echo "✅ **Release:** https://github.com/$REPOSITORY/releases/tag/$TAG" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Changelog" >> $GITHUB_STEP_SUMMARY
+          echo "$CLEAN_CHANGELOG" >> $GITHUB_STEP_SUMMARY

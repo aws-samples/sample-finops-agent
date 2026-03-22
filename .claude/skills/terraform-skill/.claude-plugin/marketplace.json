@@ -1,0 +1,29 @@
+{
+  "name": "antonbabenko",
+  "owner": {
+    "name": "Anton Babenko"
+  },
+  "version": "1.6.0",
+  "metadata": {
+    "description": "Comprehensive Terraform and OpenTofu best practices skill covering testing, modules, CI/CD, and production patterns.",
+    "repository": "https://github.com/antonbabenko/terraform-skill",
+    "license": "Apache-2.0"
+  },
+  "plugins": [
+    {
+      "name": "terraform-skill",
+      "description": "Use when working with Terraform or OpenTofu - creating modules, writing tests (native test framework, Terratest), setting up CI/CD pipelines, reviewing configurations, choosing between testing approaches, debugging state issues, implementing security scanning (trivy, checkov), or making infrastructure-as-code architecture decisions",
+      "source": "./",
+      "category": "development",
+      "keywords": [
+        "terraform",
+        "opentofu",
+        "infrastructure-as-code",
+        "testing",
+        "ci-cd",
+        "modules"
+      ],
+      "version": "1.6.0"
+    }
+  ]
+}
