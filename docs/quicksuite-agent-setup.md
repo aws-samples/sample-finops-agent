@@ -287,4 +287,3 @@ Test the agent with these questions:
 ## Related Documentation
 
 - [MCP Tools Reference](mcp-tools-reference.md) - Full tool documentation
-- [QuickSuite CFM Agent Prompt](quicksuite-cfm-agent-prompt.md) - Complete system prompt with examples
