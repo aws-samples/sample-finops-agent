@@ -93,3 +93,33 @@ output "cross_account_enabled" {
   description = "Whether cross-account deployment is enabled"
   value       = var.management_account_profile != ""
 }
+
+# -----------------------------------------------------------------------------
+# Cognito Gateway Auth Outputs (populated when gateway_auth_type = COGNITO)
+# -----------------------------------------------------------------------------
+
+output "gateway_cognito_client_id" {
+  description = "OAuth client_id — paste into QuickSuite / M2M caller config"
+  value       = length(module.cognito_gateway_auth) > 0 ? module.cognito_gateway_auth[0].client_id : null
+}
+
+output "gateway_cognito_client_secret" {
+  description = "OAuth client_secret — paste into QuickSuite / M2M caller config"
+  value       = length(module.cognito_gateway_auth) > 0 ? module.cognito_gateway_auth[0].client_secret : null
+  sensitive   = true
+}
+
+output "gateway_cognito_token_url" {
+  description = "OAuth token endpoint"
+  value       = length(module.cognito_gateway_auth) > 0 ? module.cognito_gateway_auth[0].token_url : null
+}
+
+output "gateway_cognito_scope" {
+  description = "OAuth scope (<resource_server>/<scope_name>)"
+  value       = length(module.cognito_gateway_auth) > 0 ? module.cognito_gateway_auth[0].scope : null
+}
+
+output "gateway_cognito_discovery_url" {
+  description = "OIDC discovery URL (informational)"
+  value       = length(module.cognito_gateway_auth) > 0 ? module.cognito_gateway_auth[0].discovery_url : null
+}

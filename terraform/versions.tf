@@ -4,7 +4,7 @@ terraform {
   required_providers {
     aws = {
       source  = "hashicorp/aws"
-      version = ">= 5.70.0" # AgentCore support added
+      version = ">= 6.41.0" # AgentCore Gateway JWT authorizer: allowed_scopes support
     }
     archive = {
       source  = "hashicorp/archive"

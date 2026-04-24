@@ -314,6 +314,24 @@ module "mcp_cur_analyst" {
 }
 
 # -----------------------------------------------------------------------------
+# Cognito Gateway Auth (conditional — only when gateway_auth_type = COGNITO)
+# -----------------------------------------------------------------------------
+locals {
+  _effective_cognito_domain_prefix = var.cognito_domain_prefix != "" ? var.cognito_domain_prefix : "${var.project_name}-${data.aws_caller_identity.current.account_id}"
+}
+
+module "cognito_gateway_auth" {
+  count  = var.gateway_auth_type == "COGNITO" ? 1 : 0
+  source = "./modules/cognito-gateway-auth"
+
+  project_name  = var.project_name
+  aws_region    = var.aws_region
+  domain_prefix = local._effective_cognito_domain_prefix
+  scope_name    = var.cognito_scope_name
+  tags          = local.common_tags
+}
+
+# -----------------------------------------------------------------------------
 # Module 4: AgentCore Gateway
 # -----------------------------------------------------------------------------
 module "agentcore_gateway" {
@@ -321,12 +339,17 @@ module "agentcore_gateway" {
 
   project_name        = var.project_name
   lambda_function_arn = module.lambda_proxy.function_arn
-  auth_type           = var.gateway_auth_type
+  # Gateway only knows CUSTOM_JWT / AWS_IAM / NONE — COGNITO is a wrapper that
+  # auto-provisions a Cognito IdP and then routes through the CUSTOM_JWT path.
+  auth_type = var.gateway_auth_type == "COGNITO" ? "CUSTOM_JWT" : var.gateway_auth_type
 
-  # Federate JWT configuration (used when auth_type = CUSTOM_JWT)
-  jwt_discovery_url     = var.jwt_discovery_url
-  jwt_allowed_audiences = var.jwt_allowed_audiences
-  jwt_allowed_clients   = var.jwt_allowed_clients
+  # JWT config: when COGNITO, auto-populated from the Cognito module.
+  # When CUSTOM_JWT, uses user-supplied vars.
+  # Cognito M2M tokens have no `aud` claim — we enforce auth via allowed_clients + allowed_scopes.
+  jwt_discovery_url     = var.gateway_auth_type == "COGNITO" ? module.cognito_gateway_auth[0].discovery_url : var.jwt_discovery_url
+  jwt_allowed_audiences = var.gateway_auth_type == "COGNITO" ? [] : var.jwt_allowed_audiences
+  jwt_allowed_clients   = var.gateway_auth_type == "COGNITO" ? [module.cognito_gateway_auth[0].client_id] : var.jwt_allowed_clients
+  jwt_allowed_scopes    = var.gateway_auth_type == "COGNITO" ? [module.cognito_gateway_auth[0].scope] : []
 
   # MCP Lambda targets
   mcp_lambda_targets = [
@@ -359,6 +382,7 @@ module "agentcore_gateway" {
   tags = local.common_tags
 
   depends_on = [
+    module.cognito_gateway_auth,
     module.lambda_proxy,
     module.mcp_test,
     module.mcp_cost_explorer,
