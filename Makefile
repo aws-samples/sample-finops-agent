@@ -30,7 +30,7 @@ GROUND_TRUTH_PROFILE ?= $(or $(TF_VAR_management_account_profile),$(AWS_PROFILE)
 # Export to terraform subprocesses. AWS_SDK_LOAD_CONFIG tells the Go SDK
 # (used by the Terraform AWS provider) to read named profiles from
 # ~/.aws/config, not just ~/.aws/credentials.
-export AWS_PROFILE AWS_REGION
+export AWS_PROFILE AWS_REGION GROUND_TRUTH_PROFILE
 export AWS_SDK_LOAD_CONFIG := 1
 export $(filter TF_VAR_%,$(.VARIABLES))
 
@@ -176,12 +176,14 @@ show-cognito-creds: ## Print Cognito client_id / secret / token_url / scope for 
 # federate-IdP `test-setup` / `test-token` targets — the eval harness now
 # reads credentials via `make get-token` / `make show-cognito-creds`.
 PYTEST_ARGS ?=
+# Auto-discover GATEWAY_ID from terraform (shell substitution defers to recipe time)
+GATEWAY_ID_CMD = $$($(TF) output -raw gateway_id 2>/dev/null)
 
 test-evals: ## Run RAGAS agentic evals (add VERBOSE=1 for full output)
-	uv run --group test pytest tests/ -v -m "not ground_truth" $(if $(VERBOSE),-s -rP) $(PYTEST_ARGS)
+	GATEWAY_ID=$(GATEWAY_ID_CMD) uv run --group test pytest tests/ -v -m "not ground_truth" $(if $(VERBOSE),-s -rP) $(PYTEST_ARGS)
 
 test-ground-truth: ## Run differential ground truth tests (add VERBOSE=1 for full output)
-	uv run --group test pytest tests/ -v -m "ground_truth" $(if $(VERBOSE),-s -rP) $(PYTEST_ARGS)
+	GATEWAY_ID=$(GATEWAY_ID_CMD) uv run --group test pytest tests/ -v -m "ground_truth" $(if $(VERBOSE),-s -rP) $(PYTEST_ARGS)
 
 test-all-evals: ## Run all evals including ground truth (add VERBOSE=1 for full output)
-	uv run --group test pytest tests/ -v $(if $(VERBOSE),-s -rP) $(PYTEST_ARGS)
+	GATEWAY_ID=$(GATEWAY_ID_CMD) uv run --group test pytest tests/ -v $(if $(VERBOSE),-s -rP) $(PYTEST_ARGS)
