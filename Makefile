@@ -22,7 +22,7 @@ export $(filter TF_VAR_%,$(.VARIABLES))
 TF := terraform -chdir=$(TF_DIR)
 TF_VARS := -var-file=config/terraform.tfvars
 
-.PHONY: help setup init plan apply apply-auto destroy output fmt validate lint-init lint ruff-check ruff-format ruff-fix check clean deploy update-schemas test-lambdas get-token test-jwt show-cognito-creds
+.PHONY: help setup setup-quick init plan apply apply-auto destroy output fmt validate lint-init lint ruff-check ruff-format ruff-fix check clean deploy update-schemas test-lambdas get-token test-jwt show-cognito-creds
 
 help: ## Show this help
 	@echo "AIOps MCP Gateway Proxy - Terraform Commands"
@@ -35,27 +35,25 @@ help: ## Show this help
 	@echo "  AWS_PROFILE: $(AWS_PROFILE)"
 	@echo "  AWS_REGION:  $(AWS_REGION)"
 
-setup: ## Initial setup - copy example configs
+setup: ## Interactive setup wizard (prompts + AWS validation). Pass WIZARD_ARGS=... for flags.
+	@uv run --with 'questionary>=2.0,boto3' python scripts/setup_wizard.py $(WIZARD_ARGS)
+
+setup-quick: ## Copy example configs only (no validation; for CI / power users)
 	@if [ ! -f $(TF_DIR)/config/terraform.tfvars ]; then \
 		cp $(TF_DIR)/config/terraform.tfvars.example $(TF_DIR)/config/terraform.tfvars; \
-		echo "Created $(TF_DIR)/config/terraform.tfvars - please edit with your values"; \
+		echo "Created $(TF_DIR)/config/terraform.tfvars"; \
 	else \
 		echo "$(TF_DIR)/config/terraform.tfvars already exists"; \
 	fi
 	@if [ ! -f $(TF_DIR)/config/.env ]; then \
 		cp $(TF_DIR)/config/.env.example $(TF_DIR)/config/.env; \
-		echo "Created $(TF_DIR)/config/.env - please edit with your AWS profile/region"; \
+		echo "Created $(TF_DIR)/config/.env"; \
 	else \
 		echo "$(TF_DIR)/config/.env already exists"; \
 	fi
 	@echo ""
-	@echo "Next steps:"
-	@echo "  1. Edit $(TF_DIR)/config/.env with your AWS_PROFILE and AWS_REGION"
-	@echo "  2. Edit $(TF_DIR)/config/terraform.tfvars with your project settings"
-	@echo "     - Default auth is COGNITO (service-to-service M2M, works out of the box)"
-	@echo "     - To use your own OIDC IdP for user auth, set gateway_auth_type = 'CUSTOM_JWT'"
-	@echo "     - See docs/auth-cognito.md for the COGNITO flow"
-	@echo "  3. Run 'make init' to initialize Terraform"
+	@echo "Copied example configs to $(TF_DIR)/config/. Edit them before 'make apply'."
+	@echo "Tip: 'make setup' runs an interactive wizard that fills these in for you."
 
 init: ## Initialize Terraform
 	$(TF) init

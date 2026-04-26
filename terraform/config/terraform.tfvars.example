@@ -37,7 +37,10 @@ lambda_memory_size = 256
 
 # Authentication: COGNITO (default — auto-provisions a Cognito OAuth client for
 # service-to-service callers like QuickSuite), CUSTOM_JWT (BYO OIDC IdP for user
-# auth), AWS_IAM (SigV4), or NONE.
+# auth), AWS_IAM (SigV4 — advanced; callers sign with AWS creds), or NONE.
+# Note: the `make setup` wizard surfaces only COGNITO / CUSTOM_JWT / NONE because
+# QuickSuite's MCP connector does not sign requests with SigV4. To use AWS_IAM,
+# set it here manually and run `make setup-quick` (or skip the wizard entirely).
 gateway_auth_type = "COGNITO"
 
 # --- COGNITO (used when gateway_auth_type = COGNITO) ---
