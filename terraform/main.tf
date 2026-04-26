@@ -317,7 +317,7 @@ module "mcp_cur_analyst" {
 # Cognito Gateway Auth (conditional — only when gateway_auth_type = COGNITO)
 # -----------------------------------------------------------------------------
 locals {
-  _effective_cognito_domain_prefix = var.cognito_domain_prefix != "" ? var.cognito_domain_prefix : "${var.project_name}-${data.aws_caller_identity.current.account_id}"
+  cognito_domain_prefix_effective = var.cognito_domain_prefix != "" ? var.cognito_domain_prefix : "${var.project_name}-${data.aws_caller_identity.current.account_id}"
 }
 
 module "cognito_gateway_auth" {
@@ -326,7 +326,7 @@ module "cognito_gateway_auth" {
 
   project_name  = var.project_name
   aws_region    = var.aws_region
-  domain_prefix = local._effective_cognito_domain_prefix
+  domain_prefix = local.cognito_domain_prefix_effective
   scope_name    = var.cognito_scope_name
   tags          = local.common_tags
 }
