@@ -28,9 +28,13 @@ resource "aws_bedrockagentcore_gateway" "mcp" {
     for_each = var.auth_type == "CUSTOM_JWT" ? [1] : []
     content {
       custom_jwt_authorizer {
-        discovery_url    = var.jwt_discovery_url
-        allowed_audience = toset(var.jwt_allowed_audiences)
+        discovery_url = var.jwt_discovery_url
+        # Nullable — Cognito M2M tokens (client_credentials) have no `aud` claim.
+        # When empty, we skip audience validation entirely; auth is enforced via
+        # allowed_clients (client_id) + allowed_scopes.
+        allowed_audience = length(var.jwt_allowed_audiences) > 0 ? toset(var.jwt_allowed_audiences) : null
         allowed_clients  = length(var.jwt_allowed_clients) > 0 ? toset(var.jwt_allowed_clients) : null
+        allowed_scopes   = length(var.jwt_allowed_scopes) > 0 ? toset(var.jwt_allowed_scopes) : null
       }
     }
   }
@@ -38,10 +42,12 @@ resource "aws_bedrockagentcore_gateway" "mcp" {
   tags = var.tags
 }
 
-# Gateway Target - Lambda proxy to AgentCore Runtime
+# Gateway Target - AWS API MCP server (from AWS Marketplace), fronted by the
+# Lambda proxy which forwards MCP calls to the aws-api-mcp-server container
+# running in AgentCore Runtime.
 resource "aws_bedrockagentcore_gateway_target" "lambda" {
-  name        = "${var.project_name}-lambda-target"
-  description = "Lambda proxy target for ${var.project_name}"
+  name        = "aws-api-mcp"
+  description = "AWS API MCP server (Marketplace) — exposes call_aws / suggest_aws_commands"
 
   gateway_identifier = aws_bedrockagentcore_gateway.mcp.gateway_id
 

@@ -51,9 +51,17 @@ Required IAM Permissions:
 """
 
 import json
+import os
 import re
 
 import boto3
+
+
+# Default Athena results bucket. The cross-account role only grants s3:PutObject
+# on the CUR bucket, so callers that omit output_location need this fallback —
+# otherwise Athena returns "Unable to verify/create output bucket" when the
+# workgroup default points at a bucket the assumed role cannot write to.
+DEFAULT_OUTPUT_LOCATION = os.environ.get("CUR_OUTPUT_LOCATION")
 
 # Block DDL/DML operations - defense in depth (IAM also restricts write actions)
 BLOCKED_SQL_PATTERNS = re.compile(
@@ -67,6 +75,7 @@ def validate_query(query_string):
     if BLOCKED_SQL_PATTERNS.search(query_string):
         return False, "Only SELECT, SHOW, and DESCRIBE queries are allowed. DDL/DML operations are blocked."
     return True, None
+
 
 # Cross-account support - shared module is packaged alongside lambda_function.py
 try:
@@ -128,7 +137,7 @@ def handle_start_query_execution(event):
     database = event.get("database")
     catalog = event.get("catalog", "AwsDataCatalog")
     workgroup = event.get("workgroup", "primary")
-    output_location = event.get("output_location")
+    output_location = event.get("output_location") or DEFAULT_OUTPUT_LOCATION
 
     if not query_string:
         return {"error": "query_string parameter is required"}

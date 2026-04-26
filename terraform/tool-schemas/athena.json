@@ -23,7 +23,7 @@
         },
         "output_location": {
           "type": "string",
-          "description": "S3 location for query results (e.g., s3://bucket/path/)"
+          "description": "Optional S3 URI for Athena query results (e.g., s3://bucket/path/). If omitted, defaults to the configured CUR bucket's athena-results/ prefix, which is the only bucket guaranteed to be writable by the MCP Gateway's cross-account role. Supplying a different bucket will fail with 'Unable to verify/create output bucket' unless that bucket is also granted s3:PutObject on the cross-account IAM role."
         }
       },
       "required": ["query_string"]

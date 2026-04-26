@@ -42,6 +42,12 @@ variable "jwt_allowed_clients" {
   default     = []
 }
 
+variable "jwt_allowed_scopes" {
+  description = "List of allowed JWT scopes (validated against scope claim). Empty = no scope validation."
+  type        = list(string)
+  default     = []
+}
+
 variable "tags" {
   description = "Tags to apply to resources"
   type        = map(string)

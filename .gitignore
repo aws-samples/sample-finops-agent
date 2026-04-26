@@ -46,6 +46,10 @@ terraform/modules/mcp-lambda/.build/
 terraform/config/.env
 !terraform/config/.env.example
 
+# Backups created by `make setup` wizard when reconfiguring
+*.backup
+*.bak
+
 # Python virtual environments
 .venv/
 venv/
@@ -105,6 +109,9 @@ logs/
 *.key
 credentials.json
 secrets.json
+.gateway-token.json
+
+# Cached OAuth access token from `make get-token` — contains a bearer token
 .gateway-token.json
 
 # Local files

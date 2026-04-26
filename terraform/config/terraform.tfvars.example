@@ -35,13 +35,25 @@ lambda_memory_size = 256
 # Gateway Configuration
 # -----------------------------------------------------------------------------
 
-# Authentication method: CUSTOM_JWT (Federate), AWS_IAM (SIGV4), or NONE
-gateway_auth_type = "CUSTOM_JWT"
+# Authentication: COGNITO (default — auto-provisions a Cognito OAuth client for
+# service-to-service callers like QuickSuite), CUSTOM_JWT (BYO OIDC IdP for user
+# auth), AWS_IAM (SigV4 — advanced; callers sign with AWS creds), or NONE.
+# Note: the `make setup` wizard surfaces only COGNITO / CUSTOM_JWT / NONE because
+# QuickSuite's MCP connector does not sign requests with SigV4. To use AWS_IAM,
+# set it here manually and run `make setup-quick` (or skip the wizard entirely).
+gateway_auth_type = "COGNITO"
 
-# Federate JWT Configuration (required when gateway_auth_type = CUSTOM_JWT)
-jwt_discovery_url     = "https://your-idp.example.com/.well-known/openid-configuration"
-jwt_allowed_audiences = ["your-audience-id"]
-jwt_allowed_clients   = []  # Empty = allow all clients
+# --- COGNITO (used when gateway_auth_type = COGNITO) ---
+# Cognito domain prefix (must be globally unique). Leave empty to default to
+# "<project_name>-<account_id>".
+# cognito_domain_prefix = ""
+# Custom OAuth scope name — final scope = "<project_name>/<cognito_scope_name>"
+# cognito_scope_name = "invoke"
+
+# --- CUSTOM_JWT (alternative — required only if gateway_auth_type = CUSTOM_JWT) ---
+# jwt_discovery_url     = "https://your-idp.example.com/.well-known/openid-configuration"
+# jwt_allowed_audiences = ["your-audience-id"]
+# jwt_allowed_clients   = []  # Empty = allow all clients
 
 # -----------------------------------------------------------------------------
 # Runtime Permissions
