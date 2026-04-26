@@ -24,6 +24,8 @@ endif
 # Defaults (used only if neither .env nor shell env set them)
 AWS_PROFILE ?= default
 AWS_REGION  ?= us-east-1
+# Ground truth profile for cross-account: must match the account MCP Lambda assumes into
+GROUND_TRUTH_PROFILE ?= $(or $(TF_VAR_management_account_profile),$(AWS_PROFILE))
 
 # Export to terraform subprocesses. AWS_SDK_LOAD_CONFIG tells the Go SDK
 # (used by the Terraform AWS provider) to read named profiles from
@@ -36,7 +38,7 @@ export $(filter TF_VAR_%,$(.VARIABLES))
 TF := terraform -chdir=$(TF_DIR)
 TF_VARS := -var-file=config/terraform.tfvars
 
-.PHONY: help setup setup-quick init plan apply apply-auto destroy output fmt validate lint-init lint ruff-check ruff-format ruff-fix check clean deploy update-schemas test-lambdas get-token test-jwt show-cognito-creds
+.PHONY: help setup setup-quick init plan apply apply-auto destroy output fmt validate lint-init lint ruff-check ruff-format ruff-fix check clean deploy update-schemas test-lambdas get-token test-jwt show-cognito-creds test-evals test-ground-truth test-all-evals
 
 help: ## Show this help
 	@echo "AIOps MCP Gateway Proxy - Terraform Commands"
@@ -109,14 +111,14 @@ lint: ## Run tflint (install: brew install tflint)
 
 # Python linting with ruff (via uv)
 ruff-check: ## Check Python code with ruff
-	uv run ruff check src/ scripts/
+	uv run ruff check src/ scripts/ tests/
 
 ruff-format: ## Format Python code with ruff
-	uv run ruff format src/ scripts/
+	uv run ruff format src/ scripts/ tests/
 
 ruff-fix: ## Fix Python code with ruff (check + format)
-	uv run ruff check --fix src/ scripts/
-	uv run ruff format src/ scripts/
+	uv run ruff check --fix src/ scripts/ tests/
+	uv run ruff format src/ scripts/ tests/
 
 check: fmt validate lint ruff-check ## Run all checks (terraform + ruff)
 	@echo "All checks passed!"
@@ -170,11 +172,16 @@ show-cognito-creds: ## Print Cognito client_id / secret / token_url / scope for 
 	@echo "gateway_url:   $$(cd terraform && terraform output -raw gateway_endpoint)"
 	@echo "discovery_url: $$(cd terraform && terraform output -raw gateway_cognito_discovery_url)"
 
+# RAGAS / evaluation targets (from upstream). Cognito auth replaces the
+# federate-IdP `test-setup` / `test-token` targets — the eval harness now
+# reads credentials via `make get-token` / `make show-cognito-creds`.
+PYTEST_ARGS ?=
 
-debug-plan:
-	@echo "=== pre-exec env ==="
-	@env | grep -E "^(AWS_|TF_VAR_)" | sort
-	@echo "=== shell info ==="
-	@echo "SHELL=$(SHELL)"
-	@echo "=== direct terraform call ==="
-	terraform -chdir=terraform plan -var-file=config/terraform.tfvars 2>&1 | tail -3
+test-evals: ## Run RAGAS agentic evals (add VERBOSE=1 for full output)
+	uv run --group test pytest tests/ -v -m "not ground_truth" $(if $(VERBOSE),-s -rP) $(PYTEST_ARGS)
+
+test-ground-truth: ## Run differential ground truth tests (add VERBOSE=1 for full output)
+	uv run --group test pytest tests/ -v -m "ground_truth" $(if $(VERBOSE),-s -rP) $(PYTEST_ARGS)
+
+test-all-evals: ## Run all evals including ground truth (add VERBOSE=1 for full output)
+	uv run --group test pytest tests/ -v $(if $(VERBOSE),-s -rP) $(PYTEST_ARGS)

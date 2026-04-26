@@ -228,6 +228,70 @@ After deployment, configure your MCP client (QuickSuite) to connect to the gatew
 | [n8n Integration](docs/n8n-integration.md)               | Cross-account Lambda for CFM workflows               |
 | [QuickSuite Agent Setup](docs/quicksuite-agent-setup.md) | Configure CFM agent in QuickSuite                    |
 
+## Testing
+
+The project includes an agentic evaluation suite built on [RAGAS](https://docs.ragas.io/) that validates MCP tools end-to-end through the AgentCore Gateway with JWT auth. Tests compare tool responses against direct AWS API calls (ground truth) and evaluate tool call correctness, schema quality, and FinOps data accuracy.
+
+### Test Setup
+
+With the default `COGNITO` auth mode, the stack provisions its own OAuth app — no browser round-trip needed:
+
+```bash
+# 1. Deploy the stack first
+make deploy
+
+# 2. Fetch a Cognito access token (cached to .gateway-token.json)
+make get-token
+```
+
+The test harness reads `GATEWAY_ID` from terraform output and the token from `.gateway-token.json` automatically. For the legacy CUSTOM_JWT federate-IdP flow, set OAuth env vars (`GATEWAY_CLIENT_ID`, `GATEWAY_CLIENT_SECRET`, `GATEWAY_TOKEN_URL`, `GATEWAY_AUTHORIZE_URL`) in `terraform/config/.env` before running the tests.
+
+### Running Tests
+
+| Command                              | Description                                |
+| ------------------------------------ | ------------------------------------------ |
+| `make test-evals`                    | RAGAS agentic evals (tool accuracy, F1, schema quality) |
+| `make test-ground-truth`             | Differential tests (MCP vs direct API)     |
+| `make test-all-evals`                | All tests                                  |
+| `make test-all-evals VERBOSE=1`      | All tests with full MCP response output    |
+
+Add `PYTEST_ARGS=` for extra pytest options:
+
+```bash
+# Run a single test
+make test-evals PYTEST_ARGS="-k test_ce11_today_date"
+
+# Verbose output for ground truth only
+make test-ground-truth VERBOSE=1
+```
+
+### Test Structure
+
+```
+tests/
+├── conftest.py                  # Fixtures: gateway client, ground truth client, LLM judge
+├── helpers/
+│   ├── gateway_client.py        # MCP client → AgentCore Gateway (HTTP + JWT)
+│   ├── ground_truth.py          # Direct boto3 calls to Cost Explorer / Athena
+│   ├── oauth_token.py           # OAuth2 PKCE flow for JWT token
+│   ├── comparators.py           # Differential comparison (MCP vs API response formats)
+│   └── finops_metrics.py        # Custom RAGAS metrics (AspectCritic, RubricsScore)
+├── scenarios/
+│   ├── cost_explorer.py         # 12 eval scenarios (CE-1 to CE-12)
+│   └── athena.py                # 8 eval scenarios (ATH-1 to ATH-8)
+├── test_tool_call_accuracy.py   # Deterministic: correct tool + args
+├── test_tool_call_f1.py         # Precision/recall: flexible tool ordering
+├── test_agent_goal.py           # LLM-as-judge: semantic correctness
+├── test_finops_quality.py       # Schema correctness: date formats, metrics, group_by
+└── test_ground_truth.py         # Differential: MCP result == direct API result
+```
+
+### Eval Tiers
+
+1. **Deterministic** — Tool call accuracy and F1 (no LLM needed). Validates correct tool selection, parameter formats, and schema compliance.
+2. **LLM-as-judge** — `AgentGoalAccuracy` + custom `AspectCritic` metrics via Bedrock Claude. Evaluates error handling, DDL rejection, and FinOps-specific quality.
+3. **Ground truth** — Calls the same query through both MCP Gateway and direct boto3, then compares results. Catches data mismatches, format discrepancies, and cross-account access issues.
+
 ## Make Commands
 
 | Command               | Description                                           |
@@ -244,6 +308,9 @@ After deployment, configure your MCP client (QuickSuite) to connect to the gatew
 | `make show-cognito-creds` | Print Cognito OAuth creds for MCP client setup (COGNITO auth only)    |
 | `make get-token`          | Fetch a fresh Cognito access token, cache to `.gateway-token.json`    |
 | `make test-jwt`           | End-to-end smoke test: token → Gateway initialize → 200 (COGNITO)     |
+| `make test-evals`         | RAGAS agentic evals (tool accuracy, F1, schema quality)               |
+| `make test-ground-truth`  | Differential tests (MCP vs direct API)                                |
+| `make test-all-evals`     | All evals (add `VERBOSE=1` for full MCP response output)              |
 
 > **Note:** After `make apply`, run `make update-schemas` to update gateway targets with full tool definitions. Or use `make deploy` which does both.
 

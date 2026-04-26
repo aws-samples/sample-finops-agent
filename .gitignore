@@ -109,6 +109,7 @@ logs/
 *.key
 credentials.json
 secrets.json
+.gateway-token.json
 
 # Cached OAuth access token from `make get-token` — contains a bearer token
 .gateway-token.json
