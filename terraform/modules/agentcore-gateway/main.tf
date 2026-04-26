@@ -42,10 +42,12 @@ resource "aws_bedrockagentcore_gateway" "mcp" {
   tags = var.tags
 }
 
-# Gateway Target - Lambda proxy to AgentCore Runtime
+# Gateway Target - AWS API MCP server (from AWS Marketplace), fronted by the
+# Lambda proxy which forwards MCP calls to the aws-api-mcp-server container
+# running in AgentCore Runtime.
 resource "aws_bedrockagentcore_gateway_target" "lambda" {
-  name        = "${var.project_name}-lambda-target"
-  description = "Lambda proxy target for ${var.project_name}"
+  name        = "aws-api-mcp"
+  description = "AWS API MCP server (Marketplace) — exposes call_aws / suggest_aws_commands"
 
   gateway_identifier = aws_bedrockagentcore_gateway.mcp.gateway_id
 

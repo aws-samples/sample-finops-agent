@@ -313,16 +313,22 @@ def _generated_banner() -> str:
 
 
 def render_env(cfg: WizardConfig) -> str:
+    # IMPORTANT: no inline (trailing) comments on value lines. This file is
+    # consumed by Make via `include`, which would otherwise treat the comment
+    # text as part of the variable value (e.g. AWS_PROFILE="root  # ...").
+    # Comments go on their own lines.
     lines = [_generated_banner()]
     lines.append(f"AWS_REGION={cfg.aws_region}")
     if cfg.deployment_mode == "single":
-        lines.append(f"AWS_PROFILE={cfg.aws_profile}  # billing/payer account — hosts gateway + CUR")
+        lines.append("# Single-account: billing/payer profile hosts gateway + CUR.")
+        lines.append(f"AWS_PROFILE={cfg.aws_profile}")
         lines.append(f"TF_VAR_aws_profile={cfg.aws_profile}")
-        lines.append("# Single-account mode: management_account_profile intentionally unset.")
     else:
-        lines.append(f"AWS_PROFILE={cfg.aws_profile}  # data-collection account — gateway + Lambdas deploy here")
+        lines.append("# Cross-account: data-collection profile deploys gateway + Lambdas;")
+        lines.append("# management profile owns the CUR bucket + Glue catalog.")
+        lines.append(f"AWS_PROFILE={cfg.aws_profile}")
         lines.append(f"TF_VAR_aws_profile={cfg.aws_profile}")
-        lines.append(f"TF_VAR_management_account_profile={cfg.management_profile}  # CUR lives here")
+        lines.append(f"TF_VAR_management_account_profile={cfg.management_profile}")
     if cfg.n8n_cross_account_id:
         lines.append(f"TF_VAR_n8n_cross_account_id={cfg.n8n_cross_account_id}")
     return "\n".join(lines) + "\n"

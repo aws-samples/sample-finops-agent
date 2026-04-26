@@ -56,7 +56,7 @@ All Gateway targets are **Lambda functions**. The `lambda-proxy` Lambda forwards
 
 | Target Name | Purpose |
 |-------------|---------|
-| `<project_name>-lambda-target` | Forwards to AgentCore Runtime for AWS CLI execution |
+| `aws-api-mcp`                  | Forwards to AgentCore Runtime for AWS CLI execution |
 | `cost-explorer-mcp` | AWS Cost Explorer API access |
 | `athena-mcp` | Athena query execution |
 | `cur-analyst-mcp` | Cost Explorer + Athena CUR 2.0 analysis |

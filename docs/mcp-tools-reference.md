@@ -4,7 +4,7 @@ All available MCP tools organized by Gateway target.
 
 ## AWS API MCP Server (via lambda-proxy)
 
-**Target Name**: `<project_name>-lambda-target`
+**Target Name**: `aws-api-mcp`
 
 The `lambda-proxy` Lambda forwards MCP requests to the **AgentCore Runtime** which hosts the `aws-api-mcp-server` container from AWS Marketplace.
 

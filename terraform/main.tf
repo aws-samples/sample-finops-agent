@@ -21,11 +21,54 @@ locals {
   # Gateway ARN pattern for Lambda permissions
   gateway_arn_pattern = "arn:aws:bedrock-agentcore:${var.aws_region}:${data.aws_caller_identity.current.account_id}:gateway/*"
 
-  # Tool schemas loaded from JSON files
-  test_tools          = jsondecode(file("${path.module}/tool-schemas/test.json"))
-  cost_explorer_tools = jsondecode(file("${path.module}/tool-schemas/cost_explorer.json"))
-  athena_tools        = jsondecode(file("${path.module}/tool-schemas/athena.json"))
-  cur_analyst_tools   = jsondecode(file("${path.module}/tool-schemas/cur_analyst.json"))
+  # Tool schemas loaded from JSON files.
+  # Single source of truth for (target name -> schema filename). Add a target
+  # here and the gateway registration + `gateway_target_schemas` output stay
+  # in sync. `aws-api-mcp` is listed in outputs.tf since its target lives in
+  # the agentcore-gateway module, not `mcp_lambda_targets`.
+  tool_schema_files = {
+    "test-mcp"          = "test.json"
+    "cost-explorer-mcp" = "cost_explorer.json"
+    "athena-mcp"        = "athena.json"
+    "cur-analyst-mcp"   = "cur_analyst.json"
+  }
+  mcp_tool_schemas = {
+    for name, file in local.tool_schema_files :
+    name => jsondecode(file("${path.module}/tool-schemas/${file}"))
+  }
+}
+
+# mcp_lambda_targets is a separate locals block because it references
+# module.mcp_* outputs (which can't be evaluated until those modules are
+# resolved). Declared once here so both the gateway module call and the
+# gateway_target_schemas output consume the same list — no drift.
+locals {
+  mcp_lambda_targets = [
+    {
+      name         = "test-mcp"
+      description  = "Simple test MCP tools (hello, echo)"
+      lambda_arn   = module.mcp_test.function_arn
+      tool_schemas = local.mcp_tool_schemas["test-mcp"]
+    },
+    {
+      name         = "cost-explorer-mcp"
+      description  = "AWS Cost Explorer MCP tools"
+      lambda_arn   = module.mcp_cost_explorer.function_arn
+      tool_schemas = local.mcp_tool_schemas["cost-explorer-mcp"]
+    },
+    {
+      name         = "athena-mcp"
+      description  = "AWS Athena MCP tools"
+      lambda_arn   = module.mcp_athena.function_arn
+      tool_schemas = local.mcp_tool_schemas["athena-mcp"]
+    },
+    {
+      name         = "cur-analyst-mcp"
+      description  = "CUR Data Analyst MCP tools (analyze_cur)"
+      lambda_arn   = module.mcp_cur_analyst.function_arn
+      tool_schemas = local.mcp_tool_schemas["cur-analyst-mcp"]
+    },
+  ]
 }
 
 # -----------------------------------------------------------------------------
@@ -351,33 +394,8 @@ module "agentcore_gateway" {
   jwt_allowed_clients   = var.gateway_auth_type == "COGNITO" ? [module.cognito_gateway_auth[0].client_id] : var.jwt_allowed_clients
   jwt_allowed_scopes    = var.gateway_auth_type == "COGNITO" ? [module.cognito_gateway_auth[0].scope] : []
 
-  # MCP Lambda targets
-  mcp_lambda_targets = [
-    {
-      name         = "test-mcp"
-      description  = "Simple test MCP tools (hello, echo)"
-      lambda_arn   = module.mcp_test.function_arn
-      tool_schemas = local.test_tools
-    },
-    {
-      name         = "cost-explorer-mcp"
-      description  = "AWS Cost Explorer MCP tools"
-      lambda_arn   = module.mcp_cost_explorer.function_arn
-      tool_schemas = local.cost_explorer_tools
-    },
-    {
-      name         = "athena-mcp"
-      description  = "AWS Athena MCP tools"
-      lambda_arn   = module.mcp_athena.function_arn
-      tool_schemas = local.athena_tools
-    },
-    {
-      name         = "cur-analyst-mcp"
-      description  = "CUR Data Analyst MCP tools (analyze_cur)"
-      lambda_arn   = module.mcp_cur_analyst.function_arn
-      tool_schemas = local.cur_analyst_tools
-    }
-  ]
+  # MCP Lambda targets — declared in `locals` above, shared with gateway_target_schemas output.
+  mcp_lambda_targets = local.mcp_lambda_targets
 
   tags = local.common_tags
 

@@ -59,6 +59,31 @@ output "mcp_target_ids" {
   value       = module.agentcore_gateway.mcp_target_ids
 }
 
+# Everything scripts/update_tool_schemas.py needs to re-register full tool
+# schemas against each Gateway target: schema filename, description, and
+# Lambda ARN. Derived from `local.mcp_lambda_targets` + the aws-api-mcp
+# target in the gateway module, so renaming a target or swapping a schema
+# file can't drift from the post-apply registration.
+output "gateway_target_schemas" {
+  description = "Map of Gateway target name to {schema_file, description, lambda_arn}"
+  value = merge(
+    {
+      for t in local.mcp_lambda_targets : t.name => {
+        schema_file = local.tool_schema_files[t.name]
+        description = t.description
+        lambda_arn  = t.lambda_arn
+      }
+    },
+    {
+      "aws-api-mcp" = {
+        schema_file = "aws_api_mcp.json"
+        description = "AWS API MCP server (Marketplace) — exposes call_aws / suggest_aws_commands"
+        lambda_arn  = module.lambda_proxy.function_arn
+      }
+    },
+  )
+}
+
 # Summary for MCP Client Configuration
 output "mcp_client_config" {
   description = "Example MCP client configuration for .mcp.json"
@@ -66,7 +91,7 @@ output "mcp_client_config" {
     gateway_endpoint = module.agentcore_gateway.gateway_url
     auth_type        = var.gateway_auth_type
     targets = {
-      proxy         = "${var.project_name}-lambda-target"
+      aws_api_mcp   = "aws-api-mcp"
       test          = "test-mcp"
       cost_explorer = "cost-explorer-mcp"
       athena        = "athena-mcp"

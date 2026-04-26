@@ -162,7 +162,7 @@ gateway_id = "your-gateway-id"
 mcp_client_config = {
   "auth_type" = "CUSTOM_JWT"
   "gateway_endpoint" = "https://your-gateway-id.gateway.bedrock-agentcore.us-east-1.amazonaws.com/mcp"
-  "target_name" = "finops-mcp-lambda-target"
+  "target_name" = "aws-api-mcp"
 }
 ```
 

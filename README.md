@@ -211,7 +211,7 @@ After deployment, configure your MCP client (QuickSuite) to connect to the gatew
 
 | Target                         | Description                                       |
 | ------------------------------ | ------------------------------------------------- |
-| `<project_name>-lambda-target` | AWS CLI execution (forwards to AgentCore Runtime) |
+| `aws-api-mcp`                  | AWS API MCP server (Marketplace) — `call_aws`, `suggest_aws_commands` |
 | `cost-explorer-mcp`            | AWS Cost Explorer API (6 tools)                   |
 | `athena-mcp`                   | Athena queries (8 tools)                          |
 | `cur-analyst-mcp`              | AWS Cost Explorer + Athena CUR 2.0 (1 tool)       |

@@ -4,18 +4,32 @@
 # Wrapper for terraform commands with AWS credential management
 # -----------------------------------------------------------------------------
 
-# Load from terraform/config/.env if exists
--include terraform/config/.env
-
 # Terraform directory
 TF_DIR := terraform
 
-# Defaults (override via .env or environment)
+# Load from terraform/config/.env if it exists. We use `include` + re-assign
+# with `override` so values in .env win over any pre-existing shell env vars
+# (e.g. a stale AWS_PROFILE=prod from aws-vault). Without `override`, Make
+# treats environment-origin variables as higher priority than file assignments.
+# The wizard emits comments only on their own lines, so plain `include` parses
+# KEY=VALUE cleanly without trailing-whitespace contamination.
+ENV_FILE := $(TF_DIR)/config/.env
+ifneq (,$(wildcard $(ENV_FILE)))
+include $(ENV_FILE)
+override AWS_PROFILE := $(AWS_PROFILE)
+override AWS_REGION := $(AWS_REGION)
+$(foreach v,$(filter TF_VAR_%,$(.VARIABLES)),$(eval override $(v) := $($(v))))
+endif
+
+# Defaults (used only if neither .env nor shell env set them)
 AWS_PROFILE ?= default
 AWS_REGION  ?= us-east-1
 
-# Export all TF_VAR_* variables to terraform subprocesses
+# Export to terraform subprocesses. AWS_SDK_LOAD_CONFIG tells the Go SDK
+# (used by the Terraform AWS provider) to read named profiles from
+# ~/.aws/config, not just ~/.aws/credentials.
 export AWS_PROFILE AWS_REGION
+export AWS_SDK_LOAD_CONFIG := 1
 export $(filter TF_VAR_%,$(.VARIABLES))
 
 # Common terraform command (runs in terraform/ directory)
@@ -155,3 +169,12 @@ show-cognito-creds: ## Print Cognito client_id / secret / token_url / scope for 
 	@echo "scope:         $$(cd terraform && terraform output -raw gateway_cognito_scope)"
 	@echo "gateway_url:   $$(cd terraform && terraform output -raw gateway_endpoint)"
 	@echo "discovery_url: $$(cd terraform && terraform output -raw gateway_cognito_discovery_url)"
+
+
+debug-plan:
+	@echo "=== pre-exec env ==="
+	@env | grep -E "^(AWS_|TF_VAR_)" | sort
+	@echo "=== shell info ==="
+	@echo "SHELL=$(SHELL)"
+	@echo "=== direct terraform call ==="
+	terraform -chdir=terraform plan -var-file=config/terraform.tfvars 2>&1 | tail -3
