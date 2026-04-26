@@ -1,5 +1,12 @@
 # AWS FinOps Agent
 
+[![License: MIT-0](https://img.shields.io/badge/License-MIT--0-blue.svg)](LICENSE)
+[![Python 3.12+](https://img.shields.io/badge/Python-3.12%2B-3776AB?logo=python&logoColor=white)](pyproject.toml)
+[![Terraform 1.5+](https://img.shields.io/badge/Terraform-1.5%2B-7B42BC?logo=terraform&logoColor=white)](terraform/versions.tf)
+[![Ruff](https://img.shields.io/badge/code%20style-ruff-000000?logo=ruff)](https://github.com/astral-sh/ruff)
+[![uv](https://img.shields.io/badge/managed%20with-uv-DE5FE9?logo=astral&logoColor=white)](https://github.com/astral-sh/uv)
+[![Tested with RAGAS](https://img.shields.io/badge/tested%20with-RAGAS-764ABC)](https://docs.ragas.io/)
+
 An MCP (Model Context Protocol)-enabled agent for Cloud Financial Management (CFM) that provides secure access to AWS Cost Explorer, Amazon Athena CUR 2.0, and AWS APIs. Deploys on Amazon Bedrock AgentCore with AWS Lambda functions and integrates with MCP clients like QuickSuite and Claude Code.
 
 ## Architecture
