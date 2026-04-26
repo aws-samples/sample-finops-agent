@@ -211,6 +211,13 @@ module "mcp_athena" {
   cross_account_role_arn    = local.management_role_arn
   cross_account_external_id = local.cross_account_external_id
 
+  # Default S3 output location for Athena queries. Callers that omit
+  # output_location (e.g. QuickSuite) will have their query results written
+  # here — which must be a bucket the cross-account role can write to.
+  environment_variables = {
+    CUR_OUTPUT_LOCATION = var.cur_athena_output_location != "" ? var.cur_athena_output_location : "s3://${var.cur_bucket_name}/athena-results/"
+  }
+
   iam_policy_statements = [
     {
       actions = [
