@@ -85,7 +85,14 @@ class WizardConfig:
     environment: Environment
     owner: str
     cost_center: str
+    # Optional — preserved across reconfigure runs if user set it in .env manually.
+    # Not exposed as a wizard prompt; see docs/n8n-integration.md.
     n8n_cross_account_id: str = ""
+
+    @property
+    def cur_profile(self) -> str:
+        """Profile that owns the CUR bucket + Glue catalog — mgmt in cross mode, data-collection otherwise."""
+        return self.management_profile if self.deployment_mode == "cross" else self.aws_profile
 
 
 # ----------------------------------------------------------------------------
@@ -169,16 +176,22 @@ def validate_sts(profile: str) -> dict:
 
 
 def validate_s3_bucket(profile: str, bucket: str) -> None:
+    from botocore.exceptions import ClientError  # type: ignore
+
     try:
         session = aws_session(profile)
         session.client("s3").head_bucket(Bucket=bucket)
-    except Exception as e:
-        msg = str(e)
-        if "404" in msg or "NoSuchBucket" in msg or "Not Found" in msg:
+    except ClientError as e:
+        # head_bucket returns an HTTP-status-code error; prefer the structured
+        # code over substring-matching the stringified exception.
+        status = e.response.get("ResponseMetadata", {}).get("HTTPStatusCode")
+        if status == 404:
             raise ValidationError(f"S3 bucket '{bucket}' not found (profile '{profile}').") from e
-        if "403" in msg or "Forbidden" in msg:
+        if status == 403:
             warn(f"S3 bucket '{bucket}' exists but profile '{profile}' has no permission (HTTP 403). Continuing.")
             return
+        raise ValidationError(f"S3 head_bucket failed for '{bucket}': {e}") from e
+    except Exception as e:
         raise ValidationError(f"S3 head_bucket failed for '{bucket}': {e}") from e
 
 
@@ -488,10 +501,14 @@ def _select_and_verify_profile(
     Returns (profile, identity) where identity is the STS GetCallerIdentity
     response (empty dict if skip_validation).
     """
+    # Build Choice list once — account IDs are already cached via LRU, but the
+    # ThreadPoolExecutor spin-up inside _profile_choices isn't free, and on
+    # re-prompt the profile list hasn't changed.
+    choices = _profile_choices(profiles)
     while True:
         profile = _ask_select(
             label,
-            choices=_profile_choices(profiles),
+            choices=choices,
             default=default if default in profiles else None,
         )
         if skip_validation:
@@ -784,13 +801,12 @@ def validate_non_interactive(cfg: WizardConfig, skip_aws: bool) -> None:
         if cfg.deployment_mode == "single":
             ident = validate_sts(cfg.aws_profile)
             ok(f"STS identity verified: {ident.get('Arn')}")
-            cur_profile = cfg.aws_profile
         else:
             ident_m = validate_sts(cfg.management_profile)
             ok(f"Management STS identity: {ident_m.get('Arn')}")
             ident_d = validate_sts(cfg.aws_profile)
             ok(f"Data-collection STS identity: {ident_d.get('Arn')}")
-            cur_profile = cfg.management_profile
+        cur_profile = cfg.cur_profile
         validate_s3_bucket(cur_profile, cfg.cur_bucket)
         ok(f"s3://{cfg.cur_bucket} exists")
         validate_glue_db(cur_profile, cfg.aws_region, cfg.cur_database)
