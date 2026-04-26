@@ -106,6 +106,9 @@ logs/
 credentials.json
 secrets.json
 
+# Cached OAuth access token from `make get-token` — contains a bearer token
+.gateway-token.json
+
 # Local files
 CLAUDE.md
 prompts/cur_analysis_report.md

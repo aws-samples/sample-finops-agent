@@ -22,7 +22,7 @@ export $(filter TF_VAR_%,$(.VARIABLES))
 TF := terraform -chdir=$(TF_DIR)
 TF_VARS := -var-file=config/terraform.tfvars
 
-.PHONY: help setup init plan apply apply-auto destroy output fmt validate lint-init lint ruff-check ruff-format ruff-fix check clean deploy update-schemas test-lambdas
+.PHONY: help setup init plan apply apply-auto destroy output fmt validate lint-init lint ruff-check ruff-format ruff-fix check clean deploy update-schemas test-lambdas get-token test-jwt show-cognito-creds
 
 help: ## Show this help
 	@echo "AIOps MCP Gateway Proxy - Terraform Commands"
@@ -52,6 +52,9 @@ setup: ## Initial setup - copy example configs
 	@echo "Next steps:"
 	@echo "  1. Edit $(TF_DIR)/config/.env with your AWS_PROFILE and AWS_REGION"
 	@echo "  2. Edit $(TF_DIR)/config/terraform.tfvars with your project settings"
+	@echo "     - Default auth is COGNITO (service-to-service M2M, works out of the box)"
+	@echo "     - To use your own OIDC IdP for user auth, set gateway_auth_type = 'CUSTOM_JWT'"
+	@echo "     - See docs/auth-cognito.md for the COGNITO flow"
 	@echo "  3. Run 'make init' to initialize Terraform"
 
 init: ## Initialize Terraform
@@ -139,3 +142,18 @@ deploy: apply-auto update-schemas ## Full deploy (apply + update tool schemas)
 test-lambdas: ## Test all MCP Lambda functions
 	$(eval GATEWAY_ID := $(shell $(TF) output -raw gateway_id 2>/dev/null))
 	GATEWAY_ID=$(GATEWAY_ID) AWS_PROFILE=$(AWS_PROFILE) AWS_REGION=$(AWS_REGION) uv run --with boto3 python scripts/test_mcp_lambdas.py
+
+# Cognito / JWT targets (only useful when gateway_auth_type = COGNITO)
+get-token: ## Fetch a Cognito access token and cache to .gateway-token.json
+	uv run --with httpx python scripts/get_gateway_token.py
+
+test-jwt: ## End-to-end smoke test: Cognito -> Gateway
+	uv run --with httpx python scripts/test_gateway_jwt.py
+
+show-cognito-creds: ## Print Cognito client_id / secret / token_url / scope for QuickSuite setup
+	@echo "client_id:     $$(cd terraform && terraform output -raw gateway_cognito_client_id)"
+	@echo "client_secret: $$(cd terraform && terraform output -raw gateway_cognito_client_secret)"
+	@echo "token_url:     $$(cd terraform && terraform output -raw gateway_cognito_token_url)"
+	@echo "scope:         $$(cd terraform && terraform output -raw gateway_cognito_scope)"
+	@echo "gateway_url:   $$(cd terraform && terraform output -raw gateway_endpoint)"
+	@echo "discovery_url: $$(cd terraform && terraform output -raw gateway_cognito_discovery_url)"
