@@ -37,7 +37,7 @@ A single `make deploy` creates resources in both accounts. For cross-account, Te
 
 1. **AWS Marketplace Subscription** - [Subscribe to aws-api-mcp-server](https://aws.amazon.com/marketplace/pp/prodview-lqqkwbcraxsgw) (free, accept terms). For cross-account deployments, subscribe from the **data collection account**.
 2. **CUR 2.0 Export** - [Create a Cost and Usage Report 2.0](https://docs.aws.amazon.com/cur/latest/userguide/cur-create.html) export to Amazon S3 with Athena integration enabled. Ensure the S3 bucket has Block Public Access enabled and server-side encryption configured.
-3. **Identity Provider (IdP)** - OIDC-compliant IdP for JWT authentication (see [Identity Provider Setup](#identity-provider-setup))
+3. **Identity Provider (IdP)** — *optional*: only needed if you switch to `gateway_auth_type = "CUSTOM_JWT"`. The default (`COGNITO`) auto-provisions a Cognito User Pool + OAuth client for service-to-service callers (QuickSuite, n8n, CI) — no external IdP required. See [Identity Provider Setup](#identity-provider-setup).
 4. **AWS CLI Profiles** - [Named profiles](https://docs.aws.amazon.com/cli/v1/userguide/cli-configure-files.html) configured for target account(s)
 5. **Tools** - Terraform >= 1.5.0, [uv](https://docs.astral.sh/uv/), tflint (optional)
 
@@ -143,11 +143,25 @@ See [Configuration](docs/configuration.md) for all options.
 
 ## Identity Provider Setup
 
-AgentCore Gateway supports three authentication modes: `CUSTOM_JWT`, `AWS_IAM`, or `NONE`. For MCP clients like QuickSuite, you'll need `CUSTOM_JWT` with an OIDC-compliant identity provider.
+AgentCore Gateway supports four authentication modes: `COGNITO` (default — auto-provisioned M2M), `CUSTOM_JWT` (BYO OIDC IdP for user auth), `AWS_IAM` (SigV4), or `NONE`. The default `COGNITO` flow provisions a Cognito User Pool + OAuth client automatically — ideal for service-to-service callers like QuickSuite, n8n, or CI jobs. Switch to `CUSTOM_JWT` if you need human users authenticated via a corporate IdP (Okta, Azure AD, Auth0, etc.).
 
-### QuickSuite OAuth Requirements
+### Option A: Cognito M2M (default)
 
-QuickSuite connects to AgentCore Gateway using OAuth. You'll need these credentials from your IdP:
+Default auth. Nothing to configure — just run:
+
+```bash
+make apply
+make show-cognito-creds   # prints client_id, client_secret, token_url, scope
+make test-jwt             # E2E smoke test: fetch token → call Gateway
+```
+
+Paste the printed `client_id` / `client_secret` / `token_url` into QuickSuite's MCP connector. See [docs/auth-cognito.md](docs/auth-cognito.md) for full details, rotation instructions, and troubleshooting.
+
+### Option B: Bring-your-own OIDC IdP (CUSTOM_JWT)
+
+Set `gateway_auth_type = "CUSTOM_JWT"` in `terraform/config/terraform.tfvars` to use this mode.
+
+QuickSuite (or any OAuth-capable MCP client) connects using OAuth credentials from your IdP:
 
 | Field             | Description                                 |
 | ----------------- | ------------------------------------------- |
@@ -156,7 +170,7 @@ QuickSuite connects to AgentCore Gateway using OAuth. You'll need these credenti
 | Token URL         | Endpoint to exchange credentials for tokens |
 | Authorization URL | Endpoint for user authorization             |
 
-### OIDC Provider Example
+#### OIDC Provider Setup
 
 1. Register an OAuth application in your OIDC-compliant identity provider
 2. Configure OAuth grant type (e.g., Client Credentials)
@@ -168,7 +182,7 @@ QuickSuite connects to AgentCore Gateway using OAuth. You'll need these credenti
    jwt_allowed_audiences = ["your-audience-id"]
    ```
 
-### Supported Identity Providers
+#### Supported Identity Providers
 
 Any OIDC-compliant IdP works. Update `jwt_discovery_url` and `jwt_allowed_audiences` accordingly:
 
@@ -205,14 +219,17 @@ After deployment, configure your MCP client (QuickSuite) to connect to the gatew
 
 | Command               | Description                                           |
 | --------------------- | ----------------------------------------------------- |
-| `make setup`          | Initial setup - creates config files from examples    |
-| `make init`           | Initialize Terraform                                  |
-| `make plan`           | Show execution plan (check for drift)                 |
-| `make apply`          | Apply changes (with confirmation)                     |
-| `make deploy`         | Full deploy: `apply-auto` + `update-schemas`          |
-| `make update-schemas` | Update gateway tool schemas (auto-detects gateway ID) |
-| `make output`         | Show outputs (gateway endpoint, etc.)                 |
-| `make destroy`        | Destroy all resources                                 |
+| `make setup`              | Initial setup - creates config files from examples                    |
+| `make init`               | Initialize Terraform                                                  |
+| `make plan`               | Show execution plan (check for drift)                                 |
+| `make apply`              | Apply changes (with confirmation)                                     |
+| `make deploy`             | Full deploy: `apply-auto` + `update-schemas`                          |
+| `make update-schemas`     | Update gateway tool schemas (auto-detects gateway ID)                 |
+| `make output`             | Show outputs (gateway endpoint, etc.)                                 |
+| `make destroy`            | Destroy all resources                                                 |
+| `make show-cognito-creds` | Print Cognito OAuth creds for MCP client setup (COGNITO auth only)    |
+| `make get-token`          | Fetch a fresh Cognito access token, cache to `.gateway-token.json`    |
+| `make test-jwt`           | End-to-end smoke test: token → Gateway initialize → 200 (COGNITO)     |
 
 > **Note:** After `make apply`, run `make update-schemas` to update gateway targets with full tool definitions. Or use `make deploy` which does both.
 
