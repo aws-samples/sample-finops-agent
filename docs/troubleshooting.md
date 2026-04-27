@@ -65,7 +65,7 @@ Using AWS CLI (requires SigV4 signing):
 ```bash
 aws bedrock-agentcore invoke-gateway \
   --gateway-identifier <gateway_id> \
-  --target-name finops-mcp-lambda-target \
+  --target-name aws-api-mcp \
   --payload '{"jsonrpc":"2.0","id":1,"method":"tools/list","params":{}}'
 ```
 

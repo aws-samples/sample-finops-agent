@@ -65,13 +65,13 @@ variable "lambda_memory_size" {
 # -----------------------------------------------------------------------------
 
 variable "gateway_auth_type" {
-  description = "Gateway authentication method: CUSTOM_JWT (Federate), AWS_IAM, or NONE"
+  description = "Gateway auth: COGNITO (default — auto-provisions a Cognito OAuth client for M2M callers like QuickSuite), CUSTOM_JWT (BYO OIDC IdP for user auth), AWS_IAM (SigV4), or NONE."
   type        = string
-  default     = "CUSTOM_JWT"
+  default     = "COGNITO"
 
   validation {
-    condition     = contains(["CUSTOM_JWT", "AWS_IAM", "NONE"], var.gateway_auth_type)
-    error_message = "Gateway auth type must be 'CUSTOM_JWT', 'AWS_IAM', or 'NONE'."
+    condition     = contains(["COGNITO", "CUSTOM_JWT", "AWS_IAM", "NONE"], var.gateway_auth_type)
+    error_message = "Gateway auth type must be one of: COGNITO, CUSTOM_JWT, AWS_IAM, NONE."
   }
 }
 
@@ -92,6 +92,19 @@ variable "jwt_allowed_clients" {
   description = "List of allowed JWT client IDs (optional, leave empty for all clients)"
   type        = list(string)
   default     = []
+}
+
+# Cognito Configuration (used when gateway_auth_type = COGNITO)
+variable "cognito_domain_prefix" {
+  description = "Cognito hosted-domain prefix (globally unique). Leave empty for auto: '<project_name>-<account_id>'."
+  type        = string
+  default     = ""
+}
+
+variable "cognito_scope_name" {
+  description = "Custom OAuth scope name (final scope = '<project_name>/<cognito_scope_name>')."
+  type        = string
+  default     = "invoke"
 }
 
 # -----------------------------------------------------------------------------

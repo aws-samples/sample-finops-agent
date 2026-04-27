@@ -1,0 +1,30 @@
+[
+  {
+    "name": "call_aws",
+    "description": "Execute any AWS CLI command. Provide the full CLI command string (e.g., 'aws s3 ls', 'aws ec2 describe-instances'). Returns the command output.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "cli_command": {
+          "type": "string",
+          "description": "The full AWS CLI command to execute (e.g., 'aws s3 ls', 'aws ec2 describe-instances --region us-west-2')"
+        }
+      },
+      "required": ["cli_command"]
+    }
+  },
+  {
+    "name": "suggest_aws_commands",
+    "description": "Get AWS CLI command suggestions based on a natural language query. Useful for discovering the right CLI command to use.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "query": {
+          "type": "string",
+          "description": "Natural language description of what you want to do (e.g., 'list all S3 buckets', 'get EC2 instance details')"
+        }
+      },
+      "required": ["query"]
+    }
+  }
+]
