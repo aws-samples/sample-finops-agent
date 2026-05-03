@@ -19,26 +19,34 @@ All Gateway targets are **Lambda functions**. The `lambda-proxy` Lambda forwards
 
 The gateway supports two deployment modes, configured via `terraform/config/.env`:
 
-- **Cross-account** (recommended): Gateway in a data collection account, CUR data in management/payer account. Set both `TF_VAR_aws_profile` and `TF_VAR_management_account_profile`. Best practice for AWS Organizations setups.
-- **Single-account**: Gateway and CUR data in the same account. Set `AWS_PROFILE` only. Suitable for standalone accounts or testing.
+- **Cross-account** (recommended): Gateway + CUR bucket + Glue catalog live in the **data collection account**. The management/payer account is consulted **only** by `cost-explorer-mcp` for org-wide Cost Explorer (a payer-only API). Set both `TF_VAR_aws_profile` (data collection) and `TF_VAR_management_account_profile` (payer).
+- **Single-account**: Everything in one account. Set `AWS_PROFILE` only. Suitable for standalone accounts or testing.
 
-Cross-account mode follows the [AWS recommended approach](https://docs.aws.amazon.com/organizations/latest/userguide/orgs_best-practices_mgmt-acct.html) of keeping workloads out of the management account. It's the standard pattern for [AWS Cloud Intelligence Dashboards](https://docs.aws.amazon.com/guidance/latest/cloud-intelligence-dashboards/cudos-cid-kpi.html) (CUDOS, CID, KPI):
+Cross-account mode follows the [AWS recommended approach](https://docs.aws.amazon.com/organizations/latest/userguide/orgs_best-practices_mgmt-acct.html) of keeping workloads out of the management account. It matches the [AWS Cloud Intelligence Dashboards](https://docs.aws.amazon.com/guidance/latest/cloud-intelligence-dashboards/cudos-cid-kpi.html) (CUDOS, CID, KPI) topology, where CUR Parquet is S3-replicated from the payer into the data collection account and the Glue catalog lives locally there:
 
 ```
-Data Collection Account              Management/Payer Account
-┌─────────────────────────┐         ┌─────────────────────────┐
-│  CUDOS Dashboard        │         │  IAM Role               │
-│  CID Dashboard          │         │  (auto-created)         │
-│  KPI Dashboard          │         │                         │
-│                         │         │  Cost Explorer API      │
-│  AWS FinOps Agent       │────────>│  CUR S3 Bucket          │
-│  - cost-explorer-mcp    │ Assume  │  Athena/AWS Glue        │
-│  - cur-analyst-mcp      │  Role   │                         │
-│  - athena-mcp           │         │                         │
-└─────────────────────────┘         └─────────────────────────┘
+   Data Collection Account                Management / Payer Account
+  ┌──────────────────────────┐           ┌──────────────────────────┐
+  │ CUDOS / CID / KPI        │           │ Upstream BCM CUR 2.0     │
+  │ Dashboards               │           │ export (provisioned by   │
+  │                          │           │ CID / aws-finops-infra)  │
+  │ AWS FinOps Agent         │           │                          │
+  │  ├ athena-mcp ───┐       │           │ Cost Explorer API        │
+  │  └ cur-analyst ──┤ local │           │ (org-wide, payer-only)   │
+  │                  ▼       │           │                          │
+  │ CUR S3 bucket            │◄──────────┤ S3 cross-account          │
+  │ Glue: cid_data_export    │ replication                          │
+  │                          │           │                          │
+  │  └ cost-explorer-mcp ────┼──────────►│ IAM Role (auto-created)  │
+  │                          │ AssumeRole│                          │
+  └──────────────────────────┘           └──────────────────────────┘
 ```
 
-A single `make deploy` creates resources in both accounts. For cross-account, Terraform auto-generates an [External ID](https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_create_for-user_externalid.html) to secure the assumed role (stored in Terraform state).
+Two distinct cross-account flows, each on its own row:
+- **S3 replication** (payer → data collection): upstream, provisioned by CID / [aws-finops-infra](https://github.com/aws-samples/aws-finops-infra), **not** by this repo.
+- **AssumeRole** (data collection → payer): only `cost-explorer-mcp` uses it. `athena-mcp` and `cur-analyst-mcp` query the local Glue catalog directly via the Lambda execution role — no STS hop.
+
+A single `make deploy` creates resources in both accounts. Terraform auto-generates an [External ID](https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_create_for-user_externalid.html) to secure the assumed role (stored in Terraform state).
 
 ## Prerequisites
 
@@ -53,7 +61,7 @@ A single `make deploy` creates resources in both accounts. For cross-account, Te
 This deploys the AWS FinOps Agent infrastructure:
 - AgentCore Gateway with JWT authentication
 - AWS Lambda functions (cost-explorer-mcp, athena-mcp, cur-analyst-mcp, lambda-proxy)
-- IAM roles and policies (including cross-account role if configured)
+- IAM roles and policies (including the management-account role consumed by `cost-explorer-mcp`, if cross-account mode is configured)
 - AgentCore Runtime (aws-api-mcp-server container)
 
 **Not included:** QuickSuite requires manual setup after deployment. See [QuickSuite Agent Setup](docs/quicksuite-agent-setup.md).
