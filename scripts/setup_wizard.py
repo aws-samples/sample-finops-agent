@@ -72,7 +72,11 @@ class WizardConfig:
     deployment_mode: DeploymentMode
     aws_region: str
     # Single-account: aws_profile holds the billing profile, management_profile is "".
-    # Cross-account:  aws_profile holds the data-collection profile, management_profile is set.
+    # Cross-account:  aws_profile holds the data-collection profile (gateway +
+    #                 Lambdas + CUR bucket + Glue all live here under the CID
+    #                 replication topology); management_profile is the payer
+    #                 account — consulted only by cost-explorer-mcp for org-wide
+    #                 Cost Explorer data, which is a payer-only capability.
     aws_profile: str
     management_profile: str
     auth_mode: AuthMode
@@ -91,8 +95,14 @@ class WizardConfig:
 
     @property
     def cur_profile(self) -> str:
-        """Profile that owns the CUR bucket + Glue catalog — mgmt in cross mode, data-collection otherwise."""
-        return self.management_profile if self.deployment_mode == "cross" else self.aws_profile
+        """Profile that owns the CUR S3 bucket + Glue catalog.
+
+        Under both single and cross modes, the CUR bucket + Glue now live with
+        `aws_profile` (the data-collection account under CID, or the billing
+        account under single-account). The management profile is only consulted
+        by cost-explorer-mcp for org-wide CE data.
+        """
+        return self.aws_profile
 
 
 # ----------------------------------------------------------------------------
@@ -468,10 +478,10 @@ def prompt_deployment_mode(default: str = "single") -> DeploymentMode:
     q = _q()
     choices = [
         q.Choice(
-            title="Single-account   (gateway + CUR in the SAME account, usually the billing/payer)", value="single"
+            title="Single-account   (gateway + CUR + Cost Explorer in the SAME account, usually the billing/payer)", value="single"
         ),
         q.Choice(
-            title="Cross-account    (gateway in data-collection account; CUR in management/payer)", value="cross"
+            title="Cross-account    (gateway + CUR + Glue in data-collection; Cost Explorer org-wide queries assume into management/payer)", value="cross"
         ),
     ]
     default_value = default if default in DEPLOYMENT_MODES else "single"
@@ -536,13 +546,13 @@ def prompt_cross_account_profiles(
 ) -> tuple[str, str]:
     while True:
         mgmt, ident_m = _select_and_verify_profile(
-            "AWS profile for the MANAGEMENT/PAYER account (CUR S3 bucket + Glue catalog live here):",
+            "AWS profile for the MANAGEMENT/PAYER account (used by cost-explorer-mcp for org-wide CE queries):",
             profiles,
             defaults.get("management_profile", ""),
             skip_validation,
         )
         data_coll, ident_d = _select_and_verify_profile(
-            "AWS profile for the DATA-COLLECTION account (Gateway, Lambdas, Cognito deploy here):",
+            "AWS profile for the DATA-COLLECTION account (Gateway, Lambdas, CUR bucket, Glue catalog all live here):",
             profiles,
             defaults.get("aws_profile", ""),
             skip_validation,
@@ -693,8 +703,8 @@ def summarize(cfg: WizardConfig) -> None:
     else:
         m_acct = profile_account_id(cfg.management_profile) or "?"
         d_acct = profile_account_id(cfg.aws_profile) or "?"
-        info(f"  ├─ management profile      = {cfg.management_profile} ({m_acct})  ← CUR lives here")
-        info(f"  └─ data-collection profile = {cfg.aws_profile} ({d_acct})  ← gateway deploys here")
+        info(f"  ├─ management profile      = {cfg.management_profile} ({m_acct})  ← cost-explorer-mcp assumes here for org-wide CE")
+        info(f"  └─ data-collection profile = {cfg.aws_profile} ({d_acct})  ← gateway + Lambdas + CUR bucket + Glue catalog live here")
     info(f"region             = {cfg.aws_region}")
     info(f"auth               = {cfg.auth_mode}")
     if cfg.auth_mode == "CUSTOM_JWT":

@@ -206,10 +206,15 @@ module "mcp_athena" {
   memory_size         = 256
   gateway_arn_pattern = local.gateway_arn_pattern
 
-  # Cross-account configuration (uses locals from management-account-role.tf)
-  cross_account_enabled     = local.cross_account_enabled
-  cross_account_role_arn    = local.management_role_arn
-  cross_account_external_id = local.cross_account_external_id
+  # Cross-account intentionally OFF for athena-mcp. Under the CID topology,
+  # CUR Parquet is S3-replicated from the payer into the data_collection account,
+  # and the Glue catalog (cid_data_export) lives in data_collection too — so
+  # Athena queries run against the Lambda's own execution role locally. The
+  # management-account cross-account role is reserved for cost-explorer-mcp,
+  # which needs org-wide CE data that only the payer can return.
+  cross_account_enabled     = false
+  cross_account_role_arn    = ""
+  cross_account_external_id = ""
 
   # Default S3 output location for Athena queries. Callers that omit
   # output_location (e.g. QuickSuite) will have their query results written
@@ -288,10 +293,12 @@ module "mcp_cur_analyst" {
   memory_size         = 512
   gateway_arn_pattern = local.gateway_arn_pattern
 
-  # Cross-account configuration (uses locals from management-account-role.tf)
-  cross_account_enabled     = local.cross_account_enabled
-  cross_account_role_arn    = local.management_role_arn
-  cross_account_external_id = local.cross_account_external_id
+  # Cross-account intentionally OFF — same rationale as mcp_athena. The hardcoded
+  # analyze_cur queries target cid_data_export.cur2_view in data_collection,
+  # which the Lambda's own execution role can read locally.
+  cross_account_enabled     = false
+  cross_account_role_arn    = ""
+  cross_account_external_id = ""
 
   # CUR configuration passed via environment variables
   environment_variables = {
