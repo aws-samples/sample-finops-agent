@@ -11,7 +11,7 @@ An MCP (Model Context Protocol)-enabled agent for Cloud Financial Management (CF
 
 ## Architecture
 
-![Architecture Diagram](docs/images/architecture-diagram.png)
+![Architecture Diagram](docs/images/finops-agent-architecture.png)
 
 All Gateway targets are **Lambda functions**. The `lambda-proxy` Lambda forwards requests to the Bedrock AgentCore Runtime which hosts the aws-api-mcp-server container.
 
