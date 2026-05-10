@@ -41,7 +41,6 @@ aws logs tail /aws/lambda/finops-mcp-proxy --follow
 # View specific Lambda logs
 aws logs tail /aws/lambda/finops-mcp-cost-explorer-mcp --follow
 aws logs tail /aws/lambda/finops-mcp-athena-mcp --follow
-aws logs tail /aws/lambda/finops-mcp-cur-analyst-mcp --follow
 ```
 
 ### Runtime Status
@@ -116,5 +115,4 @@ make clean-all
 ## Security Considerations
 
 - **State file**: Keep `terraform.tfstate` secure - it contains resource IDs and configuration
-- **External ID**: The n8n external ID (`terraform output -raw n8n_external_id`) is sensitive - treat as a secret
 - **Credentials**: Never commit `.env` or `terraform.tfvars` with real credentials to version control

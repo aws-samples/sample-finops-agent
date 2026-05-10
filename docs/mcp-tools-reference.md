@@ -45,50 +45,6 @@ Lambda implementing MCP protocol for AWS Athena queries.
 | `get_table_metadata` | Get detailed table metadata |
 | `stop_query_execution` | Cancel a running query |
 
-## CUR Analyst MCP
-
-**Target Name**: `cur-analyst-mcp`
-
-Lambda implementing MCP protocol for comprehensive cost analysis combining Cost Explorer API and Athena CUR 2.0 queries.
-
-| Tool | Description |
-|------|-------------|
-| `analyze_cur` | Execute comprehensive cost analysis for monthly reports |
-
-### analyze_cur Parameters
-
-```json
-{}
-```
-Uses current month vs previous month (default).
-
-```json
-{"report_month": "2024-12", "compare_month": "2024-11"}
-```
-Specify months explicitly.
-
-### What analyze_cur Returns
-
-**Cost Explorer API (5 queries):**
-- Monthly trends by account (6 months)
-- Monthly trends by service (6 months)
-- Current month by account/service/region
-
-**Savings & RI API (5 queries):**
-- Savings Plans coverage and utilization (6 months)
-- Reserved Instance coverage and utilization (6 months)
-- Cost forecast
-
-**Athena CUR 2.0 (10 queries):**
-- Monthly totals, service by account, top services
-- Region/account breakdown, charge types
-- Daily trends, usage types, purchase options
-- RI/SP savings, instance types
-
-Results are aggregated and optimized for Gateway response size limits.
-
----
-
 ## Test MCP (Dummy)
 
 **Target Name**: `test-mcp`
@@ -109,7 +65,6 @@ Dummy Lambda for Gateway verification. Not intended for production use.
 | lambda-proxy (aws-api-mcp-server) | 2 |
 | cost-explorer-mcp | 6 |
 | athena-mcp | 8 |
-| cur-analyst-mcp | 1 |
-| **Total** | **17** |
+| **Total** | **16** |
 
 (Excludes test-mcp dummy tools)

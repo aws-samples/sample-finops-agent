@@ -36,7 +36,6 @@ Each component has a dedicated IAM role following least-privilege principles:
 | Lambda Proxy | `{project}-lambda-role` | InvokeAgentRuntime (scoped to runtime ARN), X-Ray, CloudWatch Logs |
 | Cost Explorer MCP | `{project}-cost-explorer-mcp-role` | ce:Get* (4 actions), CloudWatch Logs |
 | Athena MCP | `{project}-athena-mcp-role` | athena:* (12 actions), s3:* (scoped to CUR + Athena results buckets), glue:Get* (6 actions), CloudWatch Logs |
-| CUR Analyst MCP | `{project}-cur-analyst-mcp-role` | ce:Get* (8 actions), athena:* (4 actions), s3:* (scoped to CUR bucket), glue:Get* (6 actions), CloudWatch Logs |
 | Management Account Role | `{project}-management-role` | ce:Get*, athena:*, s3:* (CUR bucket only), glue:Get* |
 
 ### Cross-Account Security
@@ -164,12 +163,6 @@ The CUR S3 bucket is managed by the deployer. Recommended security configuration
 | CKV_AWS_272 (Code Signing) | All Lambda functions | Code packaged from local source via `archive_file`. Code signing requires a CI/CD pipeline with a signing profile. |
 | CKV_AWS_111 (IAM write without constraints) | Management account role | Cost Explorer, Athena, and AWS Glue APIs do not support resource-level permissions. Actions are read-only (Get*/List*). |
 | CKV_AWS_356 (IAM `"*"` resource) | Management account role | Same as above. AWS service limitation documented in IAM policy comments. |
-
-### Semgrep Skips
-
-| Rule | File | Justification |
-|------|------|---------------|
-| python.lang.best-practice.arbitrary-sleep | cur_analyst/lambda_function.py | Controlled polling loop for Athena query completion. 5-second interval with 60-iteration max (5-minute timeout). Required because Athena queries are asynchronous. |
 
 ## Disclaimer
 

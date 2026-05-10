@@ -30,7 +30,6 @@ locals {
     "test-mcp"          = "test.json"
     "cost-explorer-mcp" = "cost_explorer.json"
     "athena-mcp"        = "athena.json"
-    "cur-analyst-mcp"   = "cur_analyst.json"
   }
   mcp_tool_schemas = {
     for name, file in local.tool_schema_files :
@@ -61,12 +60,6 @@ locals {
       description  = "AWS Athena MCP tools"
       lambda_arn   = module.mcp_athena.function_arn
       tool_schemas = local.mcp_tool_schemas["athena-mcp"]
-    },
-    {
-      name         = "cur-analyst-mcp"
-      description  = "CUR Data Analyst MCP tools (analyze_cur)"
-      lambda_arn   = module.mcp_cur_analyst.function_arn
-      tool_schemas = local.mcp_tool_schemas["cur-analyst-mcp"]
     },
   ]
 }
@@ -280,96 +273,6 @@ module "mcp_athena" {
   tags = local.common_tags
 }
 
-# CUR Analyst MCP Lambda - Strands Agent for CUR data analysis
-module "mcp_cur_analyst" {
-  source = "./modules/mcp-lambda"
-
-  project_name        = var.project_name
-  server_name         = "cur-analyst"
-  description         = "CUR Data Analyst Strands Agent for multi-agentic cost analysis"
-  source_dir          = "${path.module}/../src/lambda/mcp_servers/cur_analyst"
-  aws_region          = var.aws_region
-  timeout             = 300 # 5 min for full workflow
-  memory_size         = 512
-  gateway_arn_pattern = local.gateway_arn_pattern
-
-  # Cross-account intentionally OFF — same rationale as mcp_athena. The hardcoded
-  # analyze_cur queries target cid_data_export.cur2_view in data_collection,
-  # which the Lambda's own execution role can read locally.
-  cross_account_enabled     = false
-  cross_account_role_arn    = ""
-  cross_account_external_id = ""
-
-  # CUR configuration passed via environment variables
-  environment_variables = {
-    CUR_DATABASE        = var.cur_database_name
-    CUR_TABLE           = var.cur_table_name
-    CUR_OUTPUT_LOCATION = var.cur_athena_output_location != "" ? var.cur_athena_output_location : "s3://${var.cur_bucket_name}/athena-results/"
-    CUR_REGION          = var.aws_region
-  }
-
-  iam_policy_statements = [
-    # Cost Explorer for API data collection
-    {
-      actions = [
-        "ce:GetCostAndUsage",
-        "ce:GetCostForecast",
-        "ce:GetDimensionValues",
-        "ce:GetTags",
-        "ce:GetSavingsPlansCoverage",
-        "ce:GetSavingsPlansUtilization",
-        "ce:GetReservationCoverage",
-        "ce:GetReservationUtilization"
-      ]
-      resources = ["*"]
-    },
-    # Athena permissions for CUR queries
-    {
-      actions = [
-        "athena:StartQueryExecution",
-        "athena:GetQueryExecution",
-        "athena:GetQueryResults",
-        "athena:BatchGetQueryExecution"
-      ]
-      resources = ["*"]
-    },
-    # S3 for CUR data and Athena results (uses variable for bucket name)
-    {
-      actions = [
-        "s3:GetObject",
-        "s3:PutObject",
-        "s3:GetBucketLocation",
-        "s3:ListBucket"
-      ]
-      resources = [
-        "arn:aws:s3:::${var.cur_bucket_name}",
-        "arn:aws:s3:::${var.cur_bucket_name}/*"
-      ]
-    },
-    # Glue for Athena table metadata
-    {
-      actions = [
-        "glue:GetDatabase",
-        "glue:GetDatabases",
-        "glue:GetTable",
-        "glue:GetTables",
-        "glue:GetPartition",
-        "glue:GetPartitions"
-      ]
-      resources = ["*"]
-    }
-  ]
-
-  # Security
-  subnet_ids                     = var.enable_vpc ? module.vpc[0].private_subnet_ids : []
-  security_group_ids             = var.enable_vpc ? [module.vpc[0].lambda_security_group_id] : []
-  reserved_concurrent_executions = var.lambda_reserved_concurrent_executions
-  log_retention_in_days          = var.log_retention_in_days
-  lambda_kms_key_arn             = var.lambda_kms_key_arn
-
-  tags = local.common_tags
-}
-
 # -----------------------------------------------------------------------------
 # Cognito Gateway Auth (conditional — only when gateway_auth_type = COGNITO)
 # -----------------------------------------------------------------------------
@@ -419,6 +322,5 @@ module "agentcore_gateway" {
     module.mcp_test,
     module.mcp_cost_explorer,
     module.mcp_athena,
-    module.mcp_cur_analyst
   ]
 }

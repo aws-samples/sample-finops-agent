@@ -31,9 +31,9 @@ Cross-account mode follows the [AWS recommended approach](https://docs.aws.amazo
   │ Dashboards               │           │ export (provisioned by   │
   │                          │           │ CID / aws-finops-infra)  │
   │ AWS FinOps Agent         │           │                          │
-  │  ├ athena-mcp ───┐       │           │ Cost Explorer API        │
-  │  └ cur-analyst ──┤ local │           │ (org-wide, payer-only)   │
-  │                  ▼       │           │                          │
+  │  └ athena-mcp ──┤ local  │           │ Cost Explorer API        │
+  │                 ▼        │           │ (org-wide, payer-only)   │
+  │                          │           │                          │
   │ CUR S3 bucket            │◄──────────┤ S3 cross-account          │
   │ Glue: cid_data_export    │ replication                          │
   │                          │           │                          │
@@ -44,7 +44,7 @@ Cross-account mode follows the [AWS recommended approach](https://docs.aws.amazo
 
 Two distinct cross-account flows, each on its own row:
 - **S3 replication** (payer → data collection): upstream, provisioned by CID / [aws-finops-infra](https://github.com/aws-samples/aws-finops-infra), **not** by this repo.
-- **AssumeRole** (data collection → payer): only `cost-explorer-mcp` uses it. `athena-mcp` and `cur-analyst-mcp` query the local Glue catalog directly via the Lambda execution role — no STS hop.
+- **AssumeRole** (data collection → payer): only `cost-explorer-mcp` uses it. `athena-mcp` queries the local Glue catalog directly via the Lambda execution role — no STS hop.
 
 A single `make deploy` creates resources in both accounts. Terraform auto-generates an [External ID](https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_create_for-user_externalid.html) to secure the assumed role (stored in Terraform state).
 
@@ -60,7 +60,7 @@ A single `make deploy` creates resources in both accounts. Terraform auto-genera
 
 This deploys the AWS FinOps Agent infrastructure:
 - AgentCore Gateway with JWT authentication
-- AWS Lambda functions (cost-explorer-mcp, athena-mcp, cur-analyst-mcp, lambda-proxy)
+- AWS Lambda functions (cost-explorer-mcp, athena-mcp, lambda-proxy)
 - IAM roles and policies (including the management-account role consumed by `cost-explorer-mcp`, if cross-account mode is configured)
 - AgentCore Runtime (aws-api-mcp-server container)
 
@@ -123,7 +123,6 @@ TF_VAR_management_account_profile=root         # Terraform: management/payer acc
 | `AWS_REGION`                        | AWS region for deployment                                                 |
 | `TF_VAR_aws_profile`                | Terraform provider profile for data collection account                    |
 | `TF_VAR_management_account_profile` | Terraform provider profile for management account (enables cross-account) |
-| `TF_VAR_n8n_cross_account_id`       | AWS account ID where n8n runs (optional)                                  |
 
 ### terraform/config/terraform.tfvars
 
@@ -136,8 +135,6 @@ You must configure these variables to match your CUR 2.0 export settings. Find t
 ```hcl
 # CUR (Cost and Usage Report) Configuration - REQUIRED
 cur_bucket_name            = "your-cur-bucket"      # S3 bucket with CUR 2.0 data
-cur_database_name          = "your_cur_database"    # AWS Glue database name (check Athena)
-cur_table_name             = "your_cur_table"       # AWS Glue table name (check Athena)
 cur_athena_output_location = ""                     # Optional: S3 path for Athena results
                                                     # Defaults to s3://{cur_bucket}/athena-results/
 ```
@@ -229,7 +226,6 @@ After deployment, configure your MCP client (QuickSuite) to connect to the gatew
 | `aws-api-mcp`                  | AWS API MCP server (Marketplace) — `call_aws`, `suggest_aws_commands` |
 | `cost-explorer-mcp`            | AWS Cost Explorer API (6 tools)                   |
 | `athena-mcp`                   | Athena queries (8 tools)                          |
-| `cur-analyst-mcp`              | AWS Cost Explorer + Athena CUR 2.0 (1 tool)       |
 
 ## Documentation
 
@@ -237,10 +233,9 @@ After deployment, configure your MCP client (QuickSuite) to connect to the gatew
 | -------------------------------------------------------- | ---------------------------------------------------- |
 | [Security](SECURITY.md)                                  | Security controls, shared responsibility model, IAM design, AI security (scanned with Checkov, Semgrep) |
 | [Architecture](docs/architecture.md)                     | Detailed architecture, components, project structure |
-| [MCP Tools Reference](docs/mcp-tools-reference.md)       | All 17 MCP tools by target                           |
+| [MCP Tools Reference](docs/mcp-tools-reference.md)       | All 16 MCP tools by target                           |
 | [Configuration](docs/configuration.md)                   | tfvars, permissions, make commands                   |
 | [Troubleshooting](docs/troubleshooting.md)               | Debugging, logs, common issues                       |
-| [n8n Integration](docs/n8n-integration.md)               | Cross-account Lambda for CFM workflows               |
 | [QuickSuite Agent Setup](docs/quicksuite-agent-setup.md) | Configure CFM agent in QuickSuite                    |
 
 ## Testing

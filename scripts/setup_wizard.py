@@ -89,9 +89,6 @@ class WizardConfig:
     environment: Environment
     owner: str
     cost_center: str
-    # Optional — preserved across reconfigure runs if user set it in .env manually.
-    # Not exposed as a wizard prompt; see docs/n8n-integration.md.
-    n8n_cross_account_id: str = ""
 
     @property
     def cur_profile(self) -> str:
@@ -307,14 +304,11 @@ def load_defaults_from_existing() -> dict[str, Any]:
     defaults["deployment_mode"] = "cross" if mgmt else "single"
     defaults["aws_profile"] = data_coll_profile
     defaults["management_profile"] = mgmt
-    defaults["n8n_cross_account_id"] = env.get("TF_VAR_n8n_cross_account_id", "")
 
     defaults["project_name"] = tfv.get("project_name", "finops-mcp")
     defaults["auth_mode"] = tfv.get("gateway_auth_type", "COGNITO")
     defaults["jwt_discovery_url"] = tfv.get("jwt_discovery_url", "")
     defaults["cur_bucket"] = tfv.get("cur_bucket_name", "")
-    defaults["cur_database"] = tfv.get("cur_database_name", "")
-    defaults["cur_table"] = tfv.get("cur_table_name", "")
     defaults["enable_vpc"] = tfv.get("enable_vpc", True)
     defaults["environment"] = tfv.get("environment", "dev")
     defaults["owner"] = tfv.get("tag_Owner", "")
@@ -352,8 +346,6 @@ def render_env(cfg: WizardConfig) -> str:
         lines.append(f"AWS_PROFILE={cfg.aws_profile}")
         lines.append(f"TF_VAR_aws_profile={cfg.aws_profile}")
         lines.append(f"TF_VAR_management_account_profile={cfg.management_profile}")
-    if cfg.n8n_cross_account_id:
-        lines.append(f"TF_VAR_n8n_cross_account_id={cfg.n8n_cross_account_id}")
     return "\n".join(lines) + "\n"
 
 
@@ -376,8 +368,6 @@ def render_tfvars(cfg: WizardConfig) -> str:
     lines.append("")
     lines.append("# CUR (Cost and Usage Report) configuration")
     lines.append(f'cur_bucket_name   = "{cfg.cur_bucket}"')
-    lines.append(f'cur_database_name = "{cfg.cur_database}"')
-    lines.append(f'cur_table_name    = "{cfg.cur_table}"')
     lines.append("")
     lines.append("# VPC + networking")
     lines.append(f"enable_vpc = {str(cfg.enable_vpc).lower()}")
@@ -894,7 +884,6 @@ def build_config_interactive(defaults: dict[str, Any], skip_validation: bool) ->
         environment=environment,
         owner=owner,
         cost_center=cost_center,
-        n8n_cross_account_id=str(defaults.get("n8n_cross_account_id", "")),
     )
 
 

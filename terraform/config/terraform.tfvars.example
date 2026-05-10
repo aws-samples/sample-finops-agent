@@ -71,12 +71,6 @@ runtime_aws_policy_arn = "arn:aws:iam::aws:policy/ReadOnlyAccess"
 # S3 bucket containing CUR 2.0 data (in management account)
 cur_bucket_name = "my-cur-cost-export"
 
-# AWS Glue/Athena database name for CUR data
-cur_database_name = "cur_database"
-
-# AWS Glue/Athena table name for CUR data
-cur_table_name = "mycostexport"
-
 # S3 location for Athena query results (optional)
 # If empty, defaults to s3://{cur_bucket_name}/athena-results/
 cur_athena_output_location = ""

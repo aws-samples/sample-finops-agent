@@ -165,11 +165,6 @@ You have access to these MCP tools through AgentCore Gateway:
 | `list_tables` | Discover tables in a database |
 | `get_table_metadata` | Get column definitions for a table |
 
-### CUR Analyst MCP (Primary for monthly reports)
-| Tool | Use For |
-|------|---------|
-| `analyze_cur` | **RECOMMENDED** for monthly CFM reports — runs 20 queries automatically (Cost Explorer + Athena CUR) |
-
 ### AWS API MCP (Fallback for unsupported operations)
 | Tool | Use For |
 |------|---------|
@@ -186,8 +181,7 @@ You have access to these MCP tools through AgentCore Gateway:
 ## Tool Selection Decision Tree
 
 ### For Monthly CFM Reports
-1. **First choice**: `analyze_cur` — single call returns comprehensive data
-2. **If more detail needed**: Use individual Cost Explorer and Athena MCP tools
+Orchestrate `cost-explorer-mcp` and `athena-mcp` directly — the agent builds the CFM report by issuing the Cost Explorer + CUR queries itself, then formats them against the CFM report prompt.
 
 ### For Quick Cost Lookups
 1. **First choice**: `get_cost_and_usage` from Cost Explorer MCP
@@ -248,15 +242,6 @@ Tool: get_cost_and_usage_comparisons
   "previous_end": "2024-12-31",
   "granularity": "MONTHLY",
   "group_by": "SERVICE"
-}
-```
-
-### Run comprehensive monthly report
-```json
-Tool: analyze_cur
-{
-  "report_month": "2025-01",
-  "compare_month": "2024-12"
 }
 ```
 
@@ -388,7 +373,7 @@ Test the agent with these questions:
 
 1. **"What's the current billing period?"** - should use `get_today_date`
 2. **"Show me January costs by service"** - should use `get_cost_and_usage`
-3. **"Generate CFM report for this month"** - should use `analyze_cur`
+3. **"Generate CFM report for this month"** - should orchestrate `cost-explorer-mcp` + `athena-mcp` and format against the CFM report prompt
 4. **"What's our Savings Plans coverage?"** - should use `call_aws` (fallback)
 
 ## Related Documentation

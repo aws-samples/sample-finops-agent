@@ -15,8 +15,6 @@ The FinOps MCP Gateway deploys an Amazon Bedrock AgentCore Gateway that exposes 
 │              │                 │  │   Gateway   │       │                                              │ │
 └──────────────┘                 │  │             │──────>│  cost-explorer-mcp ───> Cost Explorer API    │ │
                                  │  │             │       │  athena-mcp ──────────> Athena + S3 + AWS Glue   │ │
-                                 │  │             │       │  cur-analyst-mcp ─────> Cost Explorer +      │ │
-                                 │  │             │       │                         Athena CUR 2.0       │ │
                                  │  │             │       │                                              │ │
                                  │  │             │       │  lambda-proxy ────────────────┐              │ │
                                  │  └─────────────┘       └───────────────────────────────┼──────────────┘ │
@@ -42,7 +40,6 @@ All Gateway targets are **Lambda functions**. The `lambda-proxy` Lambda forwards
 | **lambda-proxy** | Lambda that forwards MCP requests to AgentCore Runtime. |
 | **cost-explorer-mcp** | Lambda implementing MCP protocol for Cost Explorer API (6 tools). |
 | **athena-mcp** | Lambda implementing MCP protocol for Athena queries (8 tools). |
-| **cur-analyst-mcp** | Lambda implementing MCP protocol for Cost Explorer + Athena CUR 2.0 analysis (1 tool). |
 | **test-mcp** | Dummy Lambda for Gateway verification (`hello`, `echo`). |
 
 ## Data Flow
@@ -59,7 +56,6 @@ All Gateway targets are **Lambda functions**. The `lambda-proxy` Lambda forwards
 | `aws-api-mcp`                  | Forwards to AgentCore Runtime for AWS CLI execution |
 | `cost-explorer-mcp` | AWS Cost Explorer API access |
 | `athena-mcp` | Athena query execution |
-| `cur-analyst-mcp` | Cost Explorer + Athena CUR 2.0 analysis |
 | `test-mcp` | Gateway verification (dummy) |
 
 ## Project Structure
@@ -76,7 +72,6 @@ aws-finops-mcp-gateway/
 │   ├── architecture.md           # This file
 │   ├── configuration.md          # Detailed configuration guide
 │   ├── mcp-tools-reference.md    # All available MCP tools
-│   ├── n8n-integration.md        # Cross-account n8n setup
 │   ├── quicksuite-agent-setup.md # Configure CFM agent in QuickSuite
 │   └── troubleshooting.md        # Debugging and common issues
 │
@@ -85,7 +80,6 @@ aws-finops-mcp-gateway/
 │
 ├── scripts/
 │   ├── invoke_lambda.py       # Lambda testing script
-│   ├── test_cur_analyst.py    # CUR analyst testing
 │   ├── test_mcp_lambdas.py    # MCP Lambda testing
 │   └── update_tool_schemas.py # Update gateway tool schemas
 │
@@ -102,10 +96,8 @@ aws-finops-mcp-gateway/
 │           │   └── lambda_function.py # Test tools (hello, echo)
 │           ├── cost_explorer/
 │           │   └── lambda_function.py # Cost Explorer tools
-│           ├── athena/
-│           │   └── lambda_function.py # Athena query tools
-│           └── cur_analyst/
-│               └── lambda_function.py # CUR analysis tool
+│           └── athena/
+│               └── lambda_function.py # Athena query tools
 │
 └── terraform/
     ├── main.tf                    # Module orchestration
@@ -113,7 +105,6 @@ aws-finops-mcp-gateway/
     ├── outputs.tf                 # Output values
     ├── versions.tf                # Provider requirements
     ├── management-account-role.tf # Cross-account IAM role
-    ├── n8n-cross-account.tf       # n8n integration resources
     │
     ├── config/                    # Configuration files
     │   ├── .env.example
@@ -125,8 +116,7 @@ aws-finops-mcp-gateway/
     ├── tool-schemas/              # MCP tool schema definitions
     │   ├── test.json
     │   ├── cost_explorer.json
-    │   ├── athena.json
-    │   └── cur_analyst.json
+    │   └── athena.json
     │
     └── modules/
         ├── agentcore-gateway/     # Gateway configuration

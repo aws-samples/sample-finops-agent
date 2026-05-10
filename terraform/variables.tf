@@ -133,28 +133,6 @@ variable "runtime_aws_policy_arn" {
 }
 
 # -----------------------------------------------------------------------------
-# n8n Cross-Account Configuration
-# -----------------------------------------------------------------------------
-
-variable "n8n_cross_account_id" {
-  description = "AWS Account ID where n8n is deployed (for cross-account Lambda invocation)"
-  type        = string
-  default     = ""
-
-  validation {
-    condition     = var.n8n_cross_account_id == "" || can(regex("^[0-9]{12}$", var.n8n_cross_account_id))
-    error_message = "n8n_cross_account_id must be a 12-digit AWS account ID or empty string."
-  }
-}
-
-variable "n8n_external_id" {
-  description = "External ID for n8n role assumption (leave empty to auto-generate)"
-  type        = string
-  default     = ""
-  sensitive   = true
-}
-
-# -----------------------------------------------------------------------------
 # AWS Profile Configuration
 # -----------------------------------------------------------------------------
 
@@ -191,18 +169,6 @@ variable "cur_bucket_name" {
   description = "S3 bucket containing CUR data (in management account)"
   type        = string
   default     = "my-cur-cost-export"
-}
-
-variable "cur_database_name" {
-  description = "Athena/Glue database name for CUR data"
-  type        = string
-  default     = "cur_database"
-}
-
-variable "cur_table_name" {
-  description = "Athena/Glue table name for CUR data"
-  type        = string
-  default     = "mycostexport"
 }
 
 variable "cur_athena_output_location" {

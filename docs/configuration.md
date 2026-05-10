@@ -24,17 +24,11 @@ You **must** configure these variables to match your CUR 2.0 export. Find these 
 ```hcl
 # CUR (Cost and Usage Report) Configuration
 cur_bucket_name            = "your-cur-bucket"      # S3 bucket containing CUR data
-cur_database_name          = "your_cur_database"    # AWS Glue/Athena database name
-cur_table_name             = "your_cur_table"       # AWS Glue/Athena table name
 cur_athena_output_location = ""                     # Optional: custom S3 path for Athena results
                                                     # Defaults to s3://{cur_bucket}/athena-results/
 ```
 
-To find your CUR database and table names:
-1. Go to AWS Console → Athena → Query Editor
-2. In the left panel, look under "Data" → "AwsDataCatalog"
-3. Find the database (often named like `athenacurcfn_your_report_name`)
-4. The table is typically named after your CUR export
+The CUR Glue database and table names are supplied per-query by the MCP client (QuickSuite agent prompt, or the caller of the Athena MCP tools). Find them in Athena → Query Editor under Data → AwsDataCatalog.
 
 #### Other Settings
 
@@ -165,15 +159,3 @@ mcp_client_config = {
   "target_name" = "aws-api-mcp"
 }
 ```
-
-## n8n Cross-Account Setup
-
-To enable n8n workflows from another AWS account to invoke the cur-analyst Lambda:
-
-Add to `terraform/config/.env`:
-
-```bash
-TF_VAR_n8n_cross_account_id=123456789012
-```
-
-See [n8n Integration Guide](n8n-integration.md) for complete setup instructions.
