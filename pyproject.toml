@@ -10,7 +10,7 @@ dev = [
     "boto3>=1.35.0",
 ]
 test = [
-    "pytest>=8.0",
+    "pytest>=9.0.3",
     "pytest-asyncio>=0.23",
     "ragas>=0.2",
     "langchain-aws>=0.2",
