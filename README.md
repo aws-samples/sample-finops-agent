@@ -13,7 +13,7 @@ An MCP (Model Context Protocol)-enabled agent for Cloud Financial Management (CF
 
 ![Architecture Diagram](docs/images/finops-agent-architecture.png)
 
-All Gateway targets are **Lambda functions**. The `lambda-proxy` Lambda forwards requests to the Bedrock AgentCore Runtime which hosts the aws-api-mcp-server container.
+All Gateway targets are **Lambda functions**. The `lambda-proxy` Lambda has two modes: **managed mode** (recommended; set `aws_mcp_endpoint`) signs requests with SigV4 and forwards them to the [managed AWS MCP Server](https://docs.aws.amazon.com/agent-toolkit/latest/userguide/getting-started-aws-mcp-server.html), optionally assuming a role in a member account first for cross-account queries; **legacy mode** (default when `aws_mcp_endpoint` is unset) forwards to a Bedrock AgentCore Runtime hosting the aws-api-mcp-server container.
 
 ## Deployment Modes
 
@@ -48,9 +48,45 @@ Two distinct cross-account flows, each on its own row:
 
 A single `make deploy` creates resources in both accounts. Terraform auto-generates an [External ID](https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_create_for-user_externalid.html) to secure the assumed role (stored in Terraform state).
 
+### Cross-account resource queries (managed mode)
+
+With managed mode enabled, the agent can also run **read-only AWS API queries in any member account** — e.g. "list EC2 instances and tags in account X". The `lambda-proxy` exposes two tools:
+
+- `list_member_accounts` — resolves member account names to IDs via `organizations:ListAccounts` (deploy in the org management account to use this)
+- `run_script(code, account_id?)` — executes sandboxed Python against AWS APIs through the managed AWS MCP Server; with `account_id`, the proxy first assumes `arn:aws:iam::<account_id>:role/<member_role_name>` and signs the request with the member credentials, so the API runs in the member context and CloudTrail logs land in the member account
+
+Every account the agent queries — **including the Gateway's own account** — needs one IAM role (default name `finops-readonly`) with the `ReadOnlyAccess` managed policy, trusting this account and restricted to the proxy's execution role via an `aws:PrincipalArn` condition. There is no shared secret to distribute; see [how access is restricted](docs/migrate-to-managed-mode.md#how-access-is-restricted). The proxy's own execution role is a pure pipe (STS + Organizations only); all AWS read access flows through this per-account role, so local and member queries share one permission model.
+
+Enable managed mode in `terraform.tfvars`:
+
+```hcl
+aws_mcp_endpoint = "https://aws-mcp.us-east-1.api.aws/mcp"
+member_role_name = "finops-readonly"  # optional, this is the default
+lambda_timeout   = 120                # multi-region inventory exceeds the 30s default
+```
+
+Then create the roles:
+
+| Account | How |
+| ------- | --- |
+| This account (Gateway) | Deploy [`examples/member-finops-readonly-role.yaml`](examples/member-finops-readonly-role.yaml) to it — the proxy assumes the role here too |
+| Each member account | The same template, once per account, or org-wide via a CloudFormation StackSet |
+
+The member template takes this account's ID and the proxy's role name — the same values for every account, so one StackSet covers the organization:
+
+```bash
+terraform -chdir=terraform output -raw proxy_role_name
+```
+
+Without the role in a given account, queries against it fail with a message naming the missing role — the agent reports the gap rather than returning partial data.
+
+The role's permissions are selectable. The default attaches `ReadOnlyAccess`, which covers any service the agent might be asked about; the template's `PermissionsMode=InventoryOnly` instead grants resource and cost metadata while denying the read actions that return stored data. See [choosing the permissions grant](docs/migrate-to-managed-mode.md#choosing-the-permissions-grant).
+
+Already running a Runtime-based deployment? See [Migrate to Managed Mode](docs/migrate-to-managed-mode.md).
+
 ## Prerequisites
 
-1. **AWS Marketplace Subscription** - [Subscribe to aws-api-mcp-server](https://aws.amazon.com/marketplace/pp/prodview-lqqkwbcraxsgw) (free, accept terms). For cross-account deployments, subscribe from the **data collection account**.
+1. **AWS Marketplace Subscription** — *legacy mode only*: [aws-api-mcp-server](https://aws.amazon.com/marketplace/pp/prodview-lqqkwbcraxsgw) requires an existing subscription (the listing is closed to new subscriptions, and the upstream server is [scheduled for removal in July 2027](https://github.com/awslabs/mcp/issues/4115)). New deployments should use **managed mode** instead (`aws_mcp_endpoint = "https://aws-mcp.us-east-1.api.aws/mcp"`), which needs no subscription or container.
 2. **CUR 2.0 Export** - [Create a Cost and Usage Report 2.0](https://docs.aws.amazon.com/cur/latest/userguide/cur-create.html) export to Amazon S3 with Athena integration enabled. Ensure the S3 bucket has Block Public Access enabled and server-side encryption configured.
 3. **Identity Provider (IdP)** — *optional*: only needed if you switch to `gateway_auth_type = "CUSTOM_JWT"`. The default (`COGNITO`) auto-provisions a Cognito User Pool + OAuth client for service-to-service callers (QuickSuite, n8n, CI) — no external IdP required. See [Identity Provider Setup](#identity-provider-setup).
 4. **AWS CLI Profiles** - [Named profiles](https://docs.aws.amazon.com/cli/v1/userguide/cli-configure-files.html) configured for target account(s)
@@ -62,7 +98,7 @@ This deploys the AWS FinOps Agent infrastructure:
 - AgentCore Gateway with JWT authentication
 - AWS Lambda functions (cost-explorer-mcp, athena-mcp, lambda-proxy)
 - IAM roles and policies (including the management-account role consumed by `cost-explorer-mcp`, if cross-account mode is configured)
-- AgentCore Runtime (aws-api-mcp-server container)
+- AgentCore Runtime (aws-api-mcp-server container) — legacy mode only; managed mode replaces it with the managed AWS MCP Server
 
 **Not included:** QuickSuite requires manual setup after deployment. See [QuickSuite Agent Setup](docs/quicksuite-agent-setup.md).
 
@@ -223,7 +259,7 @@ After deployment, configure your MCP client (QuickSuite) to connect to the gatew
 
 | Target                         | Description                                       |
 | ------------------------------ | ------------------------------------------------- |
-| `aws-api-mcp`                  | AWS API MCP server (Marketplace) — `call_aws`, `suggest_aws_commands` |
+| `aws-api-mcp`                  | Cross-account AWS API access plus AWS documentation and expert skills, via managed AWS MCP Server — `run_script`, `list_member_accounts`, `get_aws_skill`, `search_documentation`, `read_documentation` (legacy: `call_aws` via AgentCore Runtime when managed mode is disabled) |
 | `cost-explorer-mcp`            | AWS Cost Explorer API (6 tools)                   |
 | `athena-mcp`                   | Athena queries (8 tools)                          |
 
@@ -237,6 +273,7 @@ After deployment, configure your MCP client (QuickSuite) to connect to the gatew
 | [Configuration](docs/configuration.md)                   | tfvars, permissions, make commands                   |
 | [Troubleshooting](docs/troubleshooting.md)               | Debugging, logs, common issues                       |
 | [QuickSuite Agent Setup](docs/quicksuite-agent-setup.md) | Configure CFM agent in QuickSuite                    |
+| [Migrate to Managed Mode](docs/migrate-to-managed-mode.md) | Upgrade an existing Runtime-based deployment       |
 
 ## Testing
 

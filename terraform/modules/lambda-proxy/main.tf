@@ -67,7 +67,10 @@ resource "aws_lambda_function" "proxy" {
 
   environment {
     variables = {
-      RUNTIME_ARN = var.runtime_arn
+      RUNTIME_ARN             = var.runtime_arn
+      AWS_MCP_ENDPOINT        = var.aws_mcp_endpoint
+      MEMBER_ROLE_NAME        = var.member_role_name
+      MEMBER_ROLE_EXTERNAL_ID = var.member_role_external_id
       # AWS_REGION is set automatically by Lambda
     }
   }

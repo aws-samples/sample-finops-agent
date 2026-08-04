@@ -77,7 +77,7 @@ output "gateway_target_schemas" {
     {
       "aws-api-mcp" = {
         schema_file = "aws_api_mcp.json"
-        description = "AWS API MCP server (Marketplace) — exposes call_aws / suggest_aws_commands"
+        description = "AWS API access via Lambda proxy — run_script / list_member_accounts (managed mode)"
         lambda_arn  = module.lambda_proxy.function_arn
       }
     },
@@ -117,6 +117,21 @@ output "cross_account_external_id" {
 output "cross_account_enabled" {
   description = "Whether cross-account deployment is enabled"
   value       = var.management_account_profile != ""
+}
+
+# -----------------------------------------------------------------------------
+# Managed Mode Outputs (populated when aws_mcp_endpoint is set)
+# -----------------------------------------------------------------------------
+
+output "proxy_role_name" {
+  description = "lambda-proxy execution role name. Pass as ProxyRoleName to examples/member-finops-readonly-role.yaml — only this role may assume finops-readonly in a member account."
+  value       = element(split("/", module.lambda_proxy.role_arn), 1)
+}
+
+output "member_role_external_id" {
+  description = "Optional External ID for the finops-readonly trust policy. Empty unless member_role_external_id is set; pass to examples/member-finops-readonly-role.yaml only when non-empty."
+  value       = var.member_role_external_id
+  sensitive   = true
 }
 
 # -----------------------------------------------------------------------------

@@ -106,6 +106,35 @@ Enter your IdP OAuth credentials:
 
 ![MCP Integration Step 3](images/quicksuite-integ-step-3.png)
 
+### 2.4 Naming the connector
+
+One MCP connector reaches exactly one AWS Organization, through that
+organization's payer account. If you attach several — one per payer — every
+connector exposes the **same tool names**, so the connector name is the only
+thing that tells the agent which organization a call will hit:
+
+```
+Using aws-api-mcp___run_script in FinOps prod 111122223333
+Using aws-api-mcp___run_script in FinOps sandbox 444455556666
+                 ^ identical                    ^ the only difference
+```
+
+Name each connector with the payer account ID and, if useful, the environment —
+for example `FinOps prod <payer-id>`. Keep the pattern consistent across
+connectors. An agent asked about "the sandbox account" routes by matching the
+user's wording against these names; vague or inconsistent names make it pick
+the wrong organization, and a cost figure from the wrong payer looks perfectly
+plausible.
+
+State in the agent's instructions which connector is the default, if one is.
+
+### 2.5 Refreshing tools after a redeploy
+
+Adding or renaming a Gateway tool does not reach an existing connector on its
+own. Open the connector and choose **Sync** to re-discover the tool list, then
+enable any new tools. Changes that leave the tool list untouched — Lambda code,
+IAM policy, tool descriptions — need no action.
+
 ## Step 3: Create Agent
 
 1. Go to **Agents** and click **Create Agent**
@@ -168,14 +197,42 @@ You have access to these MCP tools through AgentCore Gateway:
 ### AWS API MCP (Fallback for unsupported operations)
 | Tool | Use For |
 |------|---------|
-| `call_aws` | Execute any AWS CLI command (read-only access) |
-| `suggest_aws_commands` | Get AWS CLI command suggestions |
+| `run_script` | Execute sandboxed Python against any AWS API via `await call_boto3(...)`; pass `account_id` to run in a member account |
+| `list_member_accounts` | Resolve member account names to 12-digit IDs — call FIRST when the user names a member account |
 
 **Use AWS API MCP only when:**
 - Specialized tools don't support the required operation
 - Need Savings Plans/RI coverage, utilization, or recommendations
 - Need anomaly detection
 - Need non-cost AWS data (EC2 instances, S3 buckets, etc.)
+
+### AWS Knowledge (authoritative procedures and documentation)
+| Tool | Use For |
+|------|---------|
+| `get_aws_skill` | Load an AWS-authored expert workflow before a multi-step task |
+| `search_documentation` | Confirm API behaviour, limits, and pricing rules; discover skill names |
+| `read_documentation` | Read a full documentation page when a search excerpt is insufficient |
+
+**Before any cost audit, optimization review, or commitment (Savings Plans / RI)
+analysis, call `get_aws_skill` with `skill_name: aws-billing-and-cost-management`
+and follow the workflow it returns.** It encodes AWS's own procedures and the
+mistakes models commonly make on cost data — for example that Cost Explorer
+returns an empty `Total` when `GroupBy` is used, that Compute Optimizer requires
+opt-in before it returns recommendations, and that the Budgets API only works in
+`us-east-1`. The skill cites further files such as `references/cost-audit.md`;
+retrieve those by passing `file` alongside the same `skill_name`.
+
+Prefer `search_documentation` over answering from memory whenever you are about
+to state an API limit, a pricing rule, or a service behaviour.
+
+Two rules from that skill apply to every response, so follow them even if you
+skip the skill:
+- **Establish the current date with `get_today_date` before any cost query.**
+  Do not assume the year; a plausible-looking analysis of the wrong period is
+  worse than an error.
+- **Never do arithmetic in your reply.** Sums, averages, percentages, and
+  comparisons over cost data must be computed with `run_script` and reported
+  from its output.
 
 ---
 ## Tool Selection Decision Tree
@@ -193,16 +250,16 @@ Orchestrate `cost-explorer-mcp` and `athena-mcp` directly — the agent builds t
 2. **Then**: `start_query_execution` → `get_query_results`
 
 ### For Savings Plans / Reserved Instances
-Use AWS API MCP `call_aws` tool:
-- SP Coverage: `aws ce get-savings-plans-coverage ...`
-- SP Utilization: `aws ce get-savings-plans-utilization ...`
-- RI Coverage: `aws ce get-reservation-coverage ...`
-- RI Utilization: `aws ce get-reservation-utilization ...`
-- SP Recommendations: `aws ce get-savings-plans-purchase-recommendation ...`
+Use AWS API MCP `run_script` tool (Cost Explorer operations not covered by the dedicated tools):
+- SP Coverage: `GetSavingsPlansCoverage`
+- SP Utilization: `GetSavingsPlansUtilization`
+- RI Coverage: `GetReservationCoverage`
+- RI Utilization: `GetReservationUtilization`
+- SP Recommendations: `GetSavingsPlansPurchaseRecommendation`
 
 ### For Anomaly Detection
-Use AWS API MCP `call_aws` tool:
-- `aws ce get-anomalies --date-interval StartDate=YYYY-MM-DD,EndDate=YYYY-MM-DD`
+Use AWS API MCP `run_script` tool:
+- `GetAnomalies` with `DateInterval={'StartDate': 'YYYY-MM-DD', 'EndDate': 'YYYY-MM-DD'}`
 
 ---
 ## Athena Configuration
@@ -258,9 +315,23 @@ Then call `get_query_results` with the returned `query_execution_id`.
 
 ### Get Savings Plans coverage (via AWS API MCP fallback)
 ```json
-Tool: call_aws
+Tool: run_script
 {
-  "command": "aws ce get-savings-plans-coverage --time-period Start=2025-01-01,End=2025-01-31 --granularity MONTHLY --group-by Type=DIMENSION,Key=SERVICE --region us-east-1 --output json"
+  "code": "cov = await call_boto3(service_name='ce', operation_name='GetSavingsPlansCoverage', params={'TimePeriod': {'Start': '2025-01-01', 'End': '2025-01-31'}, 'Granularity': 'MONTHLY', 'GroupBy': [{'Type': 'DIMENSION', 'Key': 'SERVICE'}]})\nresult = cov"
+}
+```
+
+### List EC2 instances in a member account (cross-account)
+```json
+Tool: list_member_accounts
+{}
+```
+Then, with the resolved 12-digit ID:
+```json
+Tool: run_script
+{
+  "code": "resp = await call_boto3(service_name='ec2', operation_name='DescribeInstances')\nresult = resp['Reservations']",
+  "account_id": "<MEMBER_ACCOUNT_ID>"
 }
 ```
 
@@ -374,7 +445,7 @@ Test the agent with these questions:
 1. **"What's the current billing period?"** - should use `get_today_date`
 2. **"Show me January costs by service"** - should use `get_cost_and_usage`
 3. **"Generate CFM report for this month"** - should orchestrate `cost-explorer-mcp` + `athena-mcp` and format against the CFM report prompt
-4. **"What's our Savings Plans coverage?"** - should use `call_aws` (fallback)
+4. **"What's our Savings Plans coverage?"** - should use `run_script` (fallback)
 
 ## Related Documentation
 

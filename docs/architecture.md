@@ -8,36 +8,43 @@ The FinOps MCP Gateway deploys an Amazon Bedrock AgentCore Gateway that exposes 
 
 ```
 ┌──────────────┐                 ┌─────────────────────────────────────────────────────────────────────────┐
-│  MCP Client  │  Federate JWT   │                              AWS Cloud                                  │
+│  MCP Client  │  Federate JWT   │                              AWS Cloud (payer account)                  │
 │              │────────────────>│                                                                         │
 │  QuickSuite  │                 │  ┌─────────────┐       ┌──────────────────────────────────────────────┐ │
 │              │<────────────────│  │  AgentCore  │       │  Lambda Targets                              │ │
 │              │                 │  │   Gateway   │       │                                              │ │
 └──────────────┘                 │  │             │──────>│  cost-explorer-mcp ───> Cost Explorer API    │ │
-                                 │  │             │       │  athena-mcp ──────────> Athena + S3 + AWS Glue   │ │
+                                 │  │             │       │  athena-mcp ──────────> Athena + S3 + Glue   │ │
                                  │  │             │       │                                              │ │
-                                 │  │             │       │  lambda-proxy ────────────────┐              │ │
-                                 │  └─────────────┘       └───────────────────────────────┼──────────────┘ │
-                                 │                                                        │                │
-                                 │                                                        v                │
-                                 │                        ┌──────────────────────────────────────────────┐ │
-                                 │                        │  AgentCore Runtime                           │ │
-                                 │                        │  (aws-api-mcp-server from AWS Marketplace)   │ │
-                                 │                        │                                              │ │
-                                 │                        │  Tools: call_aws, suggest_aws_commands       │ │
-                                 │                        └──────────────────────────────────────────────┘ │
-                                 └─────────────────────────────────────────────────────────────────────────┘
+                                 │  │             │       │  lambda-proxy (managed mode)                 │ │
+                                 │  └─────────────┘       │   ├ list_member_accounts ─> Organizations    │ │
+                                 │                        │   └ run_script(code, account_id?)            │ │
+                                 │                        │      │ no account_id: own credentials        │ │
+                                 │                        │      │ account_id: AssumeRole into member ───┼─┼──┐
+                                 │                        └──────┼───────────────────────────────────────┘ │  │
+                                 └───────────────────────────────┼─────────────────────────────────────────┘  │
+                                                                 │ SigV4 (caller's credentials)               │
+                                                                 v                                            │
+                                 ┌───────────────────────────────────────────────┐   ┌────────────────────────┴──┐
+                                 │  AWS MCP Server (managed by AWS)              │   │  Member account           │
+                                 │  aws-mcp.<region>.api.aws/mcp                 │   │  IAM role finops-readonly │
+                                 │  Verifies SigV4, forwards the request with    │   │  (ReadOnlyAccess, trusts  │
+                                 │  the caller's credentials — APIs execute in   │   │  payer + ExternalId)      │
+                                 │  that credential's account context            │   └───────────────────────────┘
+                                 └───────────────────────────────────────────────┘
 ```
 
-All Gateway targets are **Lambda functions**. The `lambda-proxy` Lambda forwards requests to the AgentCore Runtime which hosts the aws-api-mcp-server container from AWS Marketplace.
+All Gateway targets are **Lambda functions**. In **managed mode** (recommended; `aws_mcp_endpoint` set), the `lambda-proxy` signs MCP requests with SigV4 and forwards them to the managed AWS MCP Server; passing `account_id` makes it assume the member-account role first, so the API executes in the member context. In **legacy mode** (`aws_mcp_endpoint` unset), it forwards to an AgentCore Runtime hosting the aws-api-mcp-server container (deprecated upstream, removal July 2027).
 
 ## Components
 
 | Component | Description |
 |-----------|-------------|
 | **AgentCore Gateway** | MCP endpoint with Federate JWT authentication. Routes requests to Lambda targets. |
-| **AgentCore Runtime** | Hosts the aws-api-mcp-server container from AWS Marketplace. Provides `call_aws` and `suggest_aws_commands` tools. |
-| **lambda-proxy** | Lambda that forwards MCP requests to AgentCore Runtime. |
+| **lambda-proxy** | Lambda with two modes. Managed mode: exposes `run_script` (sandboxed Python via the managed AWS MCP Server, optional `account_id` for cross-account) and `list_member_accounts`. Legacy mode: forwards MCP requests to an AgentCore Runtime. |
+| **AWS MCP Server (managed)** | AWS-hosted MCP endpoint. Authenticates SigV4, forwards each request with the caller's credentials; downstream services authorize against that credential's own IAM policies. |
+| **Per-account role** | One `finops-readonly` IAM role per account — members **and the payer itself** (ReadOnlyAccess; trusts the payer with an External ID). The proxy assumes it for every query, so all read access shares one permission model; the only member-side footprint. |
+| **AgentCore Runtime** | Legacy mode only. Hosts the aws-api-mcp-server container (`call_aws`, `suggest_aws_commands`). |
 | **cost-explorer-mcp** | Lambda implementing MCP protocol for Cost Explorer API (6 tools). |
 | **athena-mcp** | Lambda implementing MCP protocol for Athena queries (8 tools). |
 | **test-mcp** | Dummy Lambda for Gateway verification (`hello`, `echo`). |
@@ -53,7 +60,7 @@ All Gateway targets are **Lambda functions**. The `lambda-proxy` Lambda forwards
 
 | Target Name | Purpose |
 |-------------|---------|
-| `aws-api-mcp`                  | Forwards to AgentCore Runtime for AWS CLI execution |
+| `aws-api-mcp`                  | Managed mode: `run_script` (cross-account via `account_id`) + `list_member_accounts`. Legacy mode: forwards to AgentCore Runtime for AWS CLI execution |
 | `cost-explorer-mcp` | AWS Cost Explorer API access |
 | `athena-mcp` | Athena query execution |
 | `test-mcp` | Gateway verification (dummy) |

@@ -1,30 +1,86 @@
 [
   {
-    "name": "call_aws",
-    "description": "Execute any AWS CLI command. Provide the full CLI command string (e.g., 'aws s3 ls', 'aws ec2 describe-instances'). Returns the command output.",
+    "name": "run_script",
+    "description": "Execute Python code against AWS APIs in a sandboxed environment (via the managed AWS MCP Server). Use await call_boto3(service_name=..., operation_name=..., region_name=..., params=...) inside the code; 'import boto3' is not available. operation_name is the PascalCase API name (DescribeInstances, not describe_instances). Set 'result = {...}' as the final expression, or print it. Use this for any arithmetic on cost or usage data instead of calculating in your reply. Supports cross-account execution: pass account_id (12-digit member account ID) to run in that member account; omit to run in this (payer) account. Resolve account names to IDs with list_member_accounts first.",
     "inputSchema": {
       "type": "object",
       "properties": {
-        "cli_command": {
+        "code": {
           "type": "string",
-          "description": "The full AWS CLI command to execute (e.g., 'aws s3 ls', 'aws ec2 describe-instances --region us-west-2')"
+          "description": "Python code using await call_boto3(...); assign the final answer to 'result'"
+        },
+        "account_id": {
+          "type": "string",
+          "description": "Optional 12-digit member account ID. Omit to run in the payer account. Resolve names via list_member_accounts first."
         }
       },
-      "required": ["cli_command"]
+      "required": ["code"]
     }
   },
   {
-    "name": "suggest_aws_commands",
-    "description": "Get AWS CLI command suggestions based on a natural language query. Useful for discovering the right CLI command to use.",
+    "name": "list_member_accounts",
+    "description": "Resolve member account names to 12-digit account IDs. Call this FIRST whenever the user refers to a member account by name. Returns all accounts in the organization with account_id, name, and status.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {}
+    }
+  },
+  {
+    "name": "get_aws_skill",
+    "description": "Retrieve an AWS-authored expert workflow for a domain: step-by-step procedures, correct API usage, and known pitfalls. Call this BEFORE a multi-step cost or optimization task rather than relying on prior knowledge. For cost work the skill is 'aws-billing-and-cost-management', covering cost analysis, Savings Plans and Reserved Instance evaluation, right-sizing, budgets, anomaly detection, and querying CUR with Athena. Discover other skill names with search_documentation. skill_name is an opaque ID: copy it verbatim and never guess it. A skill may cite further files, retrieved by also passing 'file'.",
     "inputSchema": {
       "type": "object",
       "properties": {
-        "query": {
+        "skill_name": {
           "type": "string",
-          "description": "Natural language description of what you want to do (e.g., 'list all S3 buckets', 'get EC2 instance details')"
+          "description": "Exact skill name, e.g. aws-billing-and-cost-management. Copy verbatim from search_documentation; never invent one."
+        },
+        "file": {
+          "type": "string",
+          "description": "Optional file path cited inside a skill, e.g. references/cost-audit.md. Omit to get the skill overview."
         }
       },
-      "required": ["query"]
+      "required": ["skill_name"]
+    }
+  },
+  {
+    "name": "search_documentation",
+    "description": "Search official AWS documentation: API references, service guides, best practices, and the names of available expert skills. Use it to confirm API behaviour, limits, and pricing rules before stating them, and to find a skill_name for get_aws_skill.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "search_phrase": {
+          "type": "string",
+          "description": "Keywords to search for. Preserve exact error strings verbatim when troubleshooting."
+        },
+        "limit": {
+          "type": "integer",
+          "description": "Maximum number of results to return."
+        }
+      },
+      "required": ["search_phrase"]
+    }
+  },
+  {
+    "name": "read_documentation",
+    "description": "Fetch a full AWS documentation page as markdown. Use a URL returned by search_documentation, when the search excerpt is not enough to answer accurately.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "url": {
+          "type": "string",
+          "description": "Documentation URL taken from a search_documentation result. Do not guess URLs."
+        },
+        "max_length": {
+          "type": "integer",
+          "description": "Maximum characters to return."
+        },
+        "start_index": {
+          "type": "integer",
+          "description": "Character offset for continuing a truncated page."
+        }
+      },
+      "required": ["url"]
     }
   }
 ]

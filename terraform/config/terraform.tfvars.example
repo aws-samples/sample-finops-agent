@@ -96,6 +96,25 @@ enable_vpc = true
 # lambda_kms_key_arn = "arn:aws:kms:us-east-1:123456789012:key/your-key-id"
 
 # -----------------------------------------------------------------------------
+# Cross-account via managed AWS MCP Server (optional)
+# -----------------------------------------------------------------------------
+
+# Managed AWS MCP Server endpoint. Non-empty enables managed mode (cross-account run_script);
+# empty keeps legacy AgentCore Runtime proxying.
+# aws_mcp_endpoint        = "https://aws-mcp.us-east-1.api.aws/mcp"
+# member_role_name        = "finops-readonly"
+# With managed mode, raise lambda_timeout to >= 120 — multi-region run_script
+# inventory scripts routinely exceed the 30s default.
+# lambda_timeout          = 120
+#
+# Access to the per-account finops-readonly role is restricted to the proxy's
+# execution role via an aws:PrincipalArn condition, so no shared secret is
+# needed. Set member_role_external_id only if a third party operates this
+# account and you want an sts:ExternalId condition layered on top; use "auto"
+# to have Terraform generate one.
+# member_role_external_id = ""
+
+# -----------------------------------------------------------------------------
 # Optional Configuration
 # -----------------------------------------------------------------------------
 

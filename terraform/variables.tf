@@ -219,3 +219,26 @@ variable "lambda_kms_key_arn" {
   type        = string
   default     = null
 }
+
+# -----------------------------------------------------------------------------
+# Managed AWS MCP Server Mode
+# -----------------------------------------------------------------------------
+
+variable "aws_mcp_endpoint" {
+  description = "Managed AWS MCP Server endpoint. Non-empty enables managed mode (cross-account run_script); empty keeps legacy AgentCore Runtime proxying."
+  type        = string
+  default     = ""
+}
+
+variable "member_role_name" {
+  description = "IAM role name assumed in member accounts for cross-account API access"
+  type        = string
+  default     = "finops-readonly"
+}
+
+variable "member_role_external_id" {
+  description = "Optional sts:ExternalId the proxy sends when assuming finops-readonly. Leave empty (the default) unless a third party operates this account; when set, pass the same value as ExternalId to examples/member-finops-readonly-role.yaml."
+  type        = string
+  default     = ""
+  sensitive   = true
+}

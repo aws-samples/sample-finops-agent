@@ -1,0 +1,231 @@
+AWSTemplateFormatVersion: '2010-09-09'
+
+Description: >
+  Creates the finops-readonly IAM role that the FinOps agent's lambda-proxy
+  assumes to run read-only AWS API calls inside this account (managed mode).
+  Deploy this to every account the agent queries, including the Gateway's own
+  account — the proxy assumes this role there too, not only in member accounts.
+
+  Deploy per account, or org-wide with a CloudFormation StackSet. Read the
+  parameter values from the Terraform outputs in the Gateway account:
+
+    terraform -chdir=terraform output -raw proxy_role_name
+
+  Because the role has a fixed name, deployment requires CAPABILITY_NAMED_IAM:
+
+    aws cloudformation deploy \
+      --template-file examples/member-finops-readonly-role.yaml \
+      --stack-name finops-readonly \
+      --capabilities CAPABILITY_NAMED_IAM \
+      --parameter-overrides PayerAccountId=<gateway-account-id>
+
+Parameters:
+  PayerAccountId:
+    Type: String
+    Description: Account ID where the FinOps Gateway and lambda-proxy are deployed
+    AllowedPattern: '^[0-9]{12}$'
+    ConstraintDescription: Must be a 12-digit AWS account ID
+
+  ProxyRoleName:
+    Type: String
+    Description: >
+      Name of the lambda-proxy execution role in the Gateway account. Only this
+      role may assume the role created here. Defaults to <project_name>-lambda-role
+      for the default project_name.
+    Default: finops-mcp-lambda-role
+
+  RoleName:
+    Type: String
+    Description: Must match member_role_name in terraform.tfvars
+    Default: finops-readonly
+
+  PermissionsMode:
+    Type: String
+    Description: >
+      ReadOnly attaches the AWS managed ReadOnlyAccess policy. InventoryOnly
+      creates a scoped policy in this stack that grants resource and cost
+      metadata but denies the read actions that return stored data or secrets —
+      see the ScopedInventoryPolicy resource. InventoryOnly is the tighter
+      grant; ReadOnly is the broader fallback for querying services the scoped
+      policy does not cover.
+    Default: ReadOnly
+    AllowedValues: [ReadOnly, InventoryOnly]
+
+  ExternalId:
+    Type: String
+    Description: >
+      Optional, and normally left empty. Adds an sts:ExternalId condition on top
+      of the principal restriction. Only useful if a third party operates the
+      Gateway account; for an organization querying its own accounts the
+      principal restriction is the stronger control. Must match
+      member_role_external_id in terraform.tfvars when set.
+    Default: ''
+    NoEcho: true
+
+Conditions:
+  HasExternalId: !Not [!Equals [!Ref ExternalId, '']]
+  UseScopedPolicy: !Equals [!Ref PermissionsMode, InventoryOnly]
+
+Resources:
+  FinOpsReadOnlyRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Ref RoleName
+      Description: Assumed by the FinOps proxy to run read-only AWS APIs in this account
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          # Access is restricted to the proxy's execution role via
+          # aws:PrincipalArn rather than by naming that role in Principal
+          # directly. Both express the same restriction, but a Principal role
+          # ARN is resolved to a hidden unique ID at save time, so the role must
+          # already exist and the policy breaks if it is ever deleted and
+          # recreated. A condition ARN is compared as a string, so this template
+          # can be deployed before the Gateway account and survives a proxy role
+          # rebuild.
+          - Effect: Allow
+            Principal:
+              AWS: !Sub 'arn:${AWS::Partition}:iam::${PayerAccountId}:root'
+            Action: 'sts:AssumeRole'
+            Condition: !If
+              - HasExternalId
+              - ArnEquals:
+                  'aws:PrincipalArn': !Sub 'arn:${AWS::Partition}:iam::${PayerAccountId}:role/${ProxyRoleName}'
+                StringEquals:
+                  'sts:ExternalId': !Ref ExternalId
+              - ArnEquals:
+                  'aws:PrincipalArn': !Sub 'arn:${AWS::Partition}:iam::${PayerAccountId}:role/${ProxyRoleName}'
+      ManagedPolicyArns:
+        - !If
+          - UseScopedPolicy
+          - !Ref ScopedInventoryPolicy
+          - !Sub 'arn:${AWS::Partition}:iam::aws:policy/ReadOnlyAccess'
+
+  # Created only when PermissionsMode = InventoryOnly. Declaring it in the same
+  # stack as the role lets CloudFormation order the two, so no policy has to be
+  # provisioned separately before this template runs.
+  ScopedInventoryPolicy:
+    Type: AWS::IAM::ManagedPolicy
+    Condition: UseScopedPolicy
+    Properties:
+      ManagedPolicyName: !Sub '${RoleName}-inventory'
+      Description: Resource and cost metadata for the FinOps agent, without access to stored data
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          # Wildcards are fine for services whose read APIs only return
+          # configuration and metadata. The Deny below covers the exceptions.
+          - Sid: InventoryAndCostMetadata
+            Effect: Allow
+            Action:
+              - 'account:Get*'
+              - 'account:List*'
+              - 'autoscaling:Describe*'
+              - 'backup:Describe*'
+              - 'backup:List*'
+              - 'bedrock:Get*'
+              - 'bedrock:List*'
+              - 'ce:Describe*'
+              - 'ce:Get*'
+              - 'ce:List*'
+              - 'cloudfront:Get*'
+              - 'cloudfront:List*'
+              - 'cloudwatch:Describe*'
+              - 'cloudwatch:GetMetric*'
+              - 'cloudwatch:List*'
+              - 'compute-optimizer:Describe*'
+              - 'compute-optimizer:Get*'
+              - 'cost-optimization-hub:Get*'
+              - 'cost-optimization-hub:List*'
+              - 'cur:Describe*'
+              - 'directconnect:Describe*'
+              - 'dynamodb:Describe*'
+              - 'dynamodb:List*'
+              - 'ec2:Describe*'
+              - 'ecs:Describe*'
+              - 'ecs:List*'
+              - 'efs:Describe*'
+              - 'eks:Describe*'
+              - 'eks:List*'
+              - 'elasticache:Describe*'
+              - 'elasticache:List*'
+              - 'elasticloadbalancing:Describe*'
+              - 'elasticmapreduce:Describe*'
+              - 'elasticmapreduce:List*'
+              - 'firehose:Describe*'
+              - 'firehose:List*'
+              - 'fsx:Describe*'
+              - 'globalaccelerator:Describe*'
+              - 'globalaccelerator:List*'
+              - 'glue:GetCrawlers'
+              - 'glue:GetDatabases'
+              - 'glue:GetJobs'
+              - 'glue:GetTables'
+              - 'glue:List*'
+              - 'kafka:Describe*'
+              - 'kafka:Get*'
+              - 'kafka:List*'
+              - 'kinesis:Describe*'
+              - 'kinesis:List*'
+              - 'kinesisanalytics:Describe*'
+              - 'kinesisanalytics:List*'
+              - 'lambda:GetAccountSettings'
+              - 'lambda:List*'
+              - 'logs:Describe*'
+              - 'memorydb:Describe*'
+              - 'network-firewall:Describe*'
+              - 'network-firewall:List*'
+              - 'opensearch:Describe*'
+              - 'opensearch:List*'
+              - 'organizations:Describe*'
+              - 'organizations:List*'
+              - 'pricing:Describe*'
+              - 'pricing:Get*'
+              - 'rds:Describe*'
+              - 'rds:List*'
+              - 'redshift:Describe*'
+              - 'resource-explorer-2:List*'
+              - 'resource-explorer-2:Search'
+              - 'route53:Get*'
+              - 'route53:List*'
+              - 's3:GetBucketLocation'
+              - 's3:GetBucketTagging'
+              - 's3:GetBucketVersioning'
+              - 's3:GetLifecycleConfiguration'
+              - 's3:GetStorageLens*'
+              - 's3:List*'
+              - 'sagemaker:Describe*'
+              - 'sagemaker:List*'
+              - 'savingsplans:Describe*'
+              - 'savingsplans:List*'
+              - 'sts:GetCallerIdentity'
+              - 'tag:Get*'
+              - 'wafv2:Describe*'
+              - 'wafv2:List*'
+            Resource: '*'
+          # These are read actions, so the wildcards above would otherwise allow
+          # them, but each returns stored data rather than configuration. An
+          # explicit Deny cannot be overridden by the Allow.
+          - Sid: DenyReadsReturningStoredData
+            Effect: Deny
+            Action:
+              - 'dynamodb:BatchGetItem'
+              - 'dynamodb:GetItem'
+              - 'dynamodb:PartiQLSelect'
+              - 'dynamodb:Query'
+              - 'dynamodb:Scan'
+              - 'ec2:DescribeInstanceAttribute'
+              - 'ec2:GetConsoleOutput'
+              - 'ec2:GetConsoleScreenshot'
+              - 'ec2:GetPasswordData'
+              - 'lambda:GetFunctionConfiguration'
+              - 'logs:FilterLogEvents'
+              - 'logs:GetLogEvents'
+              - 's3:GetBucketPolicy'
+              - 's3:GetObject*'
+            Resource: '*'
+
+Outputs:
+  RoleArn:
+    Description: ARN of the created role
+    Value: !GetAtt FinOpsReadOnlyRole.Arn

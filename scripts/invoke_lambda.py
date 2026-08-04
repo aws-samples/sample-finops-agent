@@ -91,22 +91,24 @@ def main():
         body = json.loads(result["body"]) if isinstance(result["body"], str) else result["body"]
         print(f"Response: {json.dumps(body, indent=2)[:1000]}")
 
-    # Test 3: Call a tool (suggest_aws_commands)
-    print("\n[3] MCP Call Tool: suggest_aws_commands...")
-    result = mcp_call_tool(
-        "suggest_aws_commands",
-        {"query": "list all S3 buckets"},
-    )
+    # Test 3: Call a tool (list_member_accounts — managed mode)
+    print("\n[3] MCP Call Tool: list_member_accounts...")
+    result = mcp_call_tool("list_member_accounts", {})
     print(f"Status: {result.get('statusCode')}")
     if result.get("body"):
         body = json.loads(result["body"]) if isinstance(result["body"], str) else result["body"]
         print(f"Response: {json.dumps(body, indent=2)[:1000]}")
 
-    # Test 4: Call a tool (call_aws)
-    print("\n[4] MCP Call Tool: call_aws...")
+    # Test 4: Call a tool (run_script — managed mode; sandboxed call_boto3)
+    print("\n[4] MCP Call Tool: run_script...")
     result = mcp_call_tool(
-        "call_aws",
-        {"cli_command": "aws sts get-caller-identity"},
+        "run_script",
+        {
+            "code": (
+                "ident = await call_boto3(service_name='sts', operation_name='GetCallerIdentity')\n"
+                "result = ident['Account']"
+            )
+        },
     )
     print(f"Status: {result.get('statusCode')}")
     if result.get("body"):

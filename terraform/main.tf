@@ -104,6 +104,11 @@ module "lambda_proxy" {
   timeout      = var.lambda_timeout
   memory_size  = var.lambda_memory_size
 
+  # Managed AWS MCP Server mode (cross-account)
+  aws_mcp_endpoint        = var.aws_mcp_endpoint
+  member_role_name        = var.member_role_name
+  member_role_external_id = var.member_role_external_id
+
   # Security
   subnet_ids                     = var.enable_vpc ? module.vpc[0].private_subnet_ids : []
   security_group_ids             = var.enable_vpc ? [module.vpc[0].lambda_security_group_id] : []

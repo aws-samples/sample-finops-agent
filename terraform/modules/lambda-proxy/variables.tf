@@ -89,3 +89,26 @@ variable "log_retention_in_days" {
   type        = number
   default     = 365
 }
+
+# -----------------------------------------------------------------------------
+# Managed AWS MCP Server Mode
+# -----------------------------------------------------------------------------
+
+variable "aws_mcp_endpoint" {
+  description = "Managed AWS MCP Server endpoint. Non-empty enables managed mode (cross-account run_script); empty keeps legacy AgentCore Runtime proxying."
+  type        = string
+  default     = ""
+}
+
+variable "member_role_name" {
+  description = "IAM role name assumed in member accounts for cross-account API access"
+  type        = string
+  default     = "finops-readonly"
+}
+
+variable "member_role_external_id" {
+  description = "ExternalId required by the member role trust policy (recommended)"
+  type        = string
+  default     = ""
+  sensitive   = true
+}

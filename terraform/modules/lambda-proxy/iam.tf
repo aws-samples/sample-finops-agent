@@ -79,3 +79,31 @@ resource "aws_iam_role_policy_attachment" "lambda_vpc" {
   role       = aws_iam_role.lambda.name
   policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole"
 }
+
+# Cross-account access for managed AWS MCP Server mode (only when enabled)
+data "aws_iam_policy_document" "cross_account_managed_mode" {
+  count = var.aws_mcp_endpoint != "" ? 1 : 0
+  # checkov:skip=CKV_AWS_111:sts:AssumeRole requires wildcard account for cross-account fan-out; role name is constrained via member_role_name
+  # checkov:skip=CKV_AWS_356:organizations:ListAccounts does not support resource-level permissions (AWS limitation)
+
+  statement {
+    sid       = "AssumeMemberInventoryRole"
+    effect    = "Allow"
+    actions   = ["sts:AssumeRole"]
+    resources = ["arn:aws:iam::*:role/${var.member_role_name}"]
+  }
+
+  statement {
+    sid       = "ListOrganizationAccounts"
+    effect    = "Allow"
+    actions   = ["organizations:ListAccounts"]
+    resources = ["*"]
+  }
+}
+
+resource "aws_iam_role_policy" "cross_account_managed_mode" {
+  count  = var.aws_mcp_endpoint != "" ? 1 : 0
+  name   = "${var.project_name}-proxy-cross-account"
+  role   = aws_iam_role.lambda.id
+  policy = data.aws_iam_policy_document.cross_account_managed_mode[0].json
+}

@@ -40,7 +40,8 @@ aws_region   = "us-east-1"
 # MCP Server version from AWS Marketplace
 mcp_server_image_version = "1.2.0"
 
-# Lambda settings
+# Lambda settings (with managed AWS MCP mode, use lambda_timeout >= 120 —
+# multi-region run_script inventory scripts routinely exceed 30s)
 lambda_timeout     = 30
 lambda_memory_size = 256
 

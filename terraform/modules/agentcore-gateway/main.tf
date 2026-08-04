@@ -42,12 +42,13 @@ resource "aws_bedrockagentcore_gateway" "mcp" {
   tags = var.tags
 }
 
-# Gateway Target - AWS API MCP server (from AWS Marketplace), fronted by the
-# Lambda proxy which forwards MCP calls to the aws-api-mcp-server container
-# running in AgentCore Runtime.
+# Gateway Target - AWS API access, fronted by the Lambda proxy. In managed
+# mode the proxy forwards to the managed AWS MCP Server (run_script /
+# list_member_accounts); in legacy mode it forwards to the aws-api-mcp-server
+# container running in AgentCore Runtime.
 resource "aws_bedrockagentcore_gateway_target" "lambda" {
   name        = "aws-api-mcp"
-  description = "AWS API MCP server (Marketplace) — exposes call_aws / suggest_aws_commands"
+  description = "AWS API access via Lambda proxy — run_script / list_member_accounts (managed mode)"
 
   gateway_identifier = aws_bedrockagentcore_gateway.mcp.gateway_id
 
@@ -64,7 +65,7 @@ resource "aws_bedrockagentcore_gateway_target" "lambda" {
         tool_schema {
           inline_payload {
             name        = "mcp_proxy"
-            description = "MCP proxy to AWS API server - supports call_aws and suggest_aws_commands tools"
+            description = "MCP proxy for AWS API access - full tool schemas registered post-apply by update_tool_schemas.py"
 
             input_schema {
               type        = "object"
